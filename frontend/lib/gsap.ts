@@ -5,8 +5,18 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { ScrollToPlugin } from "gsap/ScrollToPlugin";
 import { SplitText } from "gsap/SplitText";
 
+declare global {
+  interface Window {
+    __apertureReady?: boolean;
+  }
+}
+
 if (typeof window !== "undefined") {
   gsap.registerPlugin(ScrollTrigger, ScrollToPlugin, SplitText);
+
+  // Tells the inline boot-watchdog in the document head that the app came up,
+  // so it leaves the `js` class alone.
+  window.__apertureReady = true;
 
   /**
    * Safety net for the case where this bundle loaded but a section's animation

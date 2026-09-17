@@ -36,14 +36,26 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en">
+    /* `js` is rendered here rather than added by a script at runtime. Adding it
+       before hydration mutates an attribute React already rendered, which is a
+       hydration mismatch; rendering it means server and client agree, and the
+       hidden-until-animated state is still correct on the very first paint.
+       The two ways that state could get stuck are handled below. */
+    <html lang="en" className="js">
       <head>
-        {/* Runs before first paint. Without it the browser renders the final
-            state, the JS bundle then hides it to animate, and the result is a
-            visible flash of text appearing and disappearing. */}
+        {/* Scripting disabled: nothing will ever animate, so nothing may hide. */}
+        <noscript>
+          <style>{`.reveal-target,.loop-panel{opacity:1!important;transform:none!important}`}</style>
+        </noscript>
+        {/* Scripting enabled but the app never booted (chunk failed, offline
+            mid-load). This inline script always runs even when the main bundle
+            does not, so it is the only thing that can recover that case. */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `document.documentElement.classList.add("js")`,
+            __html:
+              `window.setTimeout(function(){` +
+              `if(!window.__apertureReady){document.documentElement.classList.remove("js")}` +
+              `},5000)`,
           }}
         />
       </head>
