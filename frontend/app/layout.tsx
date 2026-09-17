@@ -18,6 +18,18 @@ export const metadata: Metadata = {
   title: "Aperture — one studio, every model",
   description:
     "Generate video, image and voice across every major model from one workspace. Bring your own keys or use ours.",
+  // app/icon.svg and app/apple-icon.png are picked up by convention; this
+  // names the one file that lives in public/ instead.
+  icons: {
+    icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
+    apple: [{ url: "/apple-icon.png", sizes: "180x180" }],
+  },
+  openGraph: {
+    title: "Aperture — one studio, every model",
+    description:
+      "Video, stills and voice from a single prompt bar. Bring your own keys or use ours.",
+    images: ["/logo.svg"],
+  },
 };
 
 export default function RootLayout({

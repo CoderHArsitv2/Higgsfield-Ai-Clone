@@ -244,6 +244,22 @@ the Vercel domain and `PUBLIC_BASE_URL` to the Render domain.
 
 ---
 
+## Brand assets
+
+| File | Use |
+| --- | --- |
+| `frontend/app/icon.svg` | Favicon. Next serves it by convention. |
+| `frontend/app/apple-icon.png` | Apple touch icon, 180×180. |
+| `frontend/public/logo-mark.svg` | The mark on its own, used in both navs. |
+| `frontend/public/logo.svg` | Mark plus wordmark, for README and social cards. |
+| `frontend/public/logo-mark-mono.svg` | Transparent background, for light surfaces. |
+
+The mark is an aperture iris, generated from its geometry rather than drawn by
+hand, so blade count, twist and opening are parameters. Stroke weights are a
+fraction of the viewBox, so it renders identically at 16px and 512px. A
+filled-wedge construction was tried first and rejected: below about 32px the
+blades merge and it reads as an asterisk.
+
 ## Showcase footage
 
 The clips in `frontend/public/showcase/` are placeholder stock footage from

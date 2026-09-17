@@ -63,9 +63,17 @@ export function Nav({ signedIn }: { signedIn: boolean }) {
           href="/"
           className="flex items-center gap-2.5 text-sm tracking-tight"
         >
-          <span className="grid h-6 w-6 place-items-center rounded-[7px] bg-accent">
-            <span className="h-1.5 w-1.5 rounded-full bg-void" />
-          </span>
+          {/* A 600-byte SVG: next/image would add a request and an optimizer
+              pass for no benefit, and it does not optimise SVG anyway.
+              Served straight from public/ so the mark has one source of truth. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logo-mark.svg"
+            alt=""
+            width={24}
+            height={24}
+            className="h-6 w-6"
+          />
           <span className="font-medium">Aperture</span>
         </Link>
 
