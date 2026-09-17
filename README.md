@@ -121,6 +121,36 @@ Create API), not Auth0's own Management API (`https://<tenant>/api/v2/`) — tha
 one mints tokens for managing your Auth0 tenant, not for your service, and a
 regular web application is not authorised to request it by default.
 
+### Sign-in screen
+
+Sign-in happens on our own `/login` screen, not Auth0's Universal Login. Each
+button links to `/auth/login?connection=<id>`, which the SDK forwards to Auth0's
+`/authorize`. Naming the connection makes Auth0 skip its chooser and send the
+user straight to that provider — click Google and the next thing you see is
+Google's account picker.
+
+The whole screen is plain links, so it ships no client JavaScript.
+
+Which buttons appear is env-driven, because a connection only works once it is
+enabled in Auth0 (Authentication → Social) *and* switched on for the
+application. A button for an unconfigured connection returns an Auth0 error, so
+the default is the one connection a fresh tenant has on:
+
+```bash
+AUTH0_CONNECTIONS=google-oauth2                    # default
+AUTH0_CONNECTIONS=google-oauth2,windowslive,apple  # once those are configured
+```
+
+| id | Button |
+| --- | --- |
+| `google-oauth2` | Google |
+| `windowslive` | Microsoft |
+| `apple` | Apple |
+| `github` | GitHub |
+
+`AUTH0_EMAIL_CONNECTION` controls the "Continue with Email" option; leave it
+empty to hand off to Universal Login without naming a connection.
+
 ### Callback URL
 
 The callback URL is resolved from environment, in this order:

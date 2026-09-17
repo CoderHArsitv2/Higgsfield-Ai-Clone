@@ -111,7 +111,7 @@ export function Nav({ signedIn }: { signedIn: boolean }) {
             </>
           ) : (
             <a
-              href="/auth/login"
+              href="/login"
               className="rounded-full bg-fg px-4 py-1.5 text-sm font-medium text-void transition-transform hover:scale-[1.03]"
             >
               Sign in

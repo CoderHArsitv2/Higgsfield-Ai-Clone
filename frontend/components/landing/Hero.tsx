@@ -141,7 +141,7 @@ export function Hero({ modelCount }: { modelCount: number }) {
           <div className="mt-11 flex flex-wrap items-center gap-4">
             <Magnetic className="hero-cta reveal-target">
               <a
-                href="/auth/login"
+                href="/login"
                 className="inline-flex items-center gap-2 rounded-full bg-accent px-7 py-3.5 text-sm font-medium text-void transition-colors hover:bg-accent-soft"
               >
                 Start creating

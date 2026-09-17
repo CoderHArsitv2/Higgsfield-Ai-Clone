@@ -37,10 +37,10 @@ export function FooterCta() {
         <div className="mt-10 flex justify-center">
           <Magnetic>
             <a
-              href="/auth/login"
+              href="/login"
               className="inline-flex items-center gap-2 rounded-full bg-accent px-8 py-4 text-sm font-medium text-void transition-colors hover:bg-accent-soft"
             >
-              Sign in with Auth0
+              Start creating
             </a>
           </Magnetic>
         </div>

@@ -8,7 +8,7 @@ export const metadata = { title: "Provider keys — Aperture" };
 
 export default async function KeysPage() {
   const session = await auth0.getSession();
-  if (!session) redirect("/auth/login?returnTo=/settings/keys");
+  if (!session) redirect("/login?returnTo=/settings/keys");
 
   const me = await getMe();
 

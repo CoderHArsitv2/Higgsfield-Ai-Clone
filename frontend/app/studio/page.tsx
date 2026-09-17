@@ -7,7 +7,7 @@ export const metadata = { title: "Studio — Aperture" };
 
 export default async function StudioPage() {
   const session = await auth0.getSession();
-  if (!session) redirect("/auth/login?returnTo=/studio");
+  if (!session) redirect("/login?returnTo=/studio");
 
   // The Auth0 session gives us a name and picture immediately; credits come
   // from our own API and are the one value worth waiting for.
