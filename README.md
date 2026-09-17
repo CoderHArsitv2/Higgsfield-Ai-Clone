@@ -116,7 +116,40 @@ Create a **Regular Web Application** and an **API**:
 | API Identifier | e.g. `https://api.higgsfield-clone.local` — this is `AUTH0_AUDIENCE` |
 
 The audience matters: without it Auth0 issues an opaque token the Go API cannot
-verify.
+verify. It must be a **custom API you create** (Auth0 → Applications → APIs →
+Create API), not Auth0's own Management API (`https://<tenant>/api/v2/`) — that
+one mints tokens for managing your Auth0 tenant, not for your service, and a
+regular web application is not authorised to request it by default.
+
+### Callback URL
+
+The callback URL is resolved from environment, in this order:
+
+| Variable | Effect |
+| --- | --- |
+| `AUTH0_REDIRECT_URI` | Full URL. Wins over everything. Use behind ngrok, a tunnel or a proxy, where the origin the browser sees differs from the one the server knows. |
+| `APP_BASE_URL` | Origin(s) the app is served from; the callback path is appended. A comma-separated list is accepted. |
+| `AUTH0_CALLBACK_PATH` | The path itself, if `/auth/callback` collides with one of your routes. |
+
+Whatever it resolves to must be pasted **verbatim** into the Auth0 application's
+Allowed Callback URLs. In development the resolved value is printed at startup:
+
+```
+[auth0] callback URL: https://....ngrok-free.app/auth/callback
+```
+
+**Auth0 only accepts `https` callback URLs** for non-localhost origins, so a
+tunnel is the usual way to develop against a real tenant:
+
+```bash
+ngrok http 3000
+# then set both, and add the same callback to Auth0:
+#   APP_BASE_URL=https://<subdomain>.ngrok-free.app
+#   AUTH0_REDIRECT_URI=https://<subdomain>.ngrok-free.app/auth/callback
+```
+
+A free ngrok subdomain changes on every restart, which is exactly why this
+lives in environment rather than in code.
 
 ### 2. Database
 
