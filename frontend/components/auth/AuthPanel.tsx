@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ProviderIcon } from "./ProviderIcon";
+import { LazyVideo } from "@/components/ui/LazyVideo";
 import type { Connection } from "@/lib/connections";
 
 /**
@@ -31,15 +32,11 @@ export function AuthPanel({
     <div className="grid w-full max-w-4xl overflow-hidden rounded-3xl border border-line bg-panel shadow-2xl shadow-black/70 md:grid-cols-2">
       {/* Left: the product doing the thing you are signing in to do. */}
       <aside className="relative hidden min-h-[520px] md:block">
-        <video
+        <LazyVideo
           src="/showcase/rain-city.mp4"
           poster="/showcase/rain-city.jpg"
           className="absolute inset-0 h-full w-full object-cover"
-          autoPlay
-          muted
-          loop
-          playsInline
-          preload="metadata"
+          eager
         />
         <div className="absolute inset-0 bg-gradient-to-t from-void via-void/20 to-transparent" />
         <div className="absolute inset-x-0 bottom-0 p-7">

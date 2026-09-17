@@ -58,11 +58,16 @@ export function Hero({ modelCount }: { modelCount: number }) {
           );
 
         // Slow ambient drift on the backdrop so the page is never quite static.
+        //
+        // Translate only. Animating `scale` on an element carrying a 120px blur
+        // forces the browser to re-rasterise a viewport-sized blurred layer on
+        // every frame -- one of the most expensive things a page can do, and it
+        // was running continuously underneath every scroll. A pure translate
+        // stays on the compositor.
         gsap.to(".hero-glow", {
-          xPercent: 12,
-          yPercent: -8,
-          scale: 1.12,
-          duration: 18,
+          xPercent: 10,
+          yPercent: -6,
+          duration: 20,
           ease: "sine.inOut",
           repeat: -1,
           yoyo: true,
@@ -87,7 +92,11 @@ export function Hero({ modelCount }: { modelCount: number }) {
     // Splitting before the display webfont is applied measures the fallback
     // font's line boxes, so the headline breaks in the wrong places and then
     // reflows visibly once the real font arrives.
-    const fonts = document.fonts?.ready ?? Promise.resolve();
+    // A font that never resolves must not leave the headline hidden.
+    const fonts = Promise.race([
+      document.fonts?.ready ?? Promise.resolve(),
+      new Promise((r) => window.setTimeout(r, 600)),
+    ]);
     fonts
       .catch(() => undefined)
       .then(() => {
@@ -114,6 +123,7 @@ export function Hero({ modelCount }: { modelCount: number }) {
         aria-hidden
         className="hero-glow pointer-events-none absolute left-1/2 top-1/3 h-[70vh] w-[70vw] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-45 blur-[120px]"
         style={{
+          willChange: "transform",
           background:
             "radial-gradient(circle at 30% 30%, #ff5a36 0%, transparent 55%), radial-gradient(circle at 70% 60%, #8a7cff 0%, transparent 55%)",
         }}
@@ -128,7 +138,7 @@ export function Hero({ modelCount }: { modelCount: number }) {
 
           <h1
             ref={headline}
-            className="max-w-[16ch] font-display text-[clamp(3rem,10vw,8.5rem)] font-normal leading-[0.92] tracking-[-0.02em]"
+            className="reveal-target max-w-[16ch] font-display text-[clamp(3rem,10vw,8.5rem)] font-normal leading-[0.92] tracking-[-0.02em]"
           >
             Every model. <em className="italic text-accent">One</em> studio.
           </h1>

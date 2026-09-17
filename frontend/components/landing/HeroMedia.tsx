@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { gsap, prefersReducedMotion } from "@/lib/gsap";
+import { LazyVideo } from "@/components/ui/LazyVideo";
 
 const CARDS = [
   {
@@ -95,15 +96,11 @@ export function HeroMedia() {
           key={c.clip}
           className={`hero-card hero-card-${i} absolute overflow-hidden rounded-2xl border border-line bg-panel shadow-2xl shadow-black/60 ${c.className}`}
         >
-          <video
+          <LazyVideo
             src={`/showcase/${c.clip}.mp4`}
             poster={`/showcase/${c.clip}.jpg`}
             className="h-full w-full object-cover"
-            autoPlay
-            muted
-            loop
-            playsInline
-            preload="metadata"
+            eager
           />
           <figcaption className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-gradient-to-t from-void/95 to-transparent px-3 pb-2.5 pt-8">
             <span className="font-mono text-[9px] uppercase tracking-wider text-fg/80">

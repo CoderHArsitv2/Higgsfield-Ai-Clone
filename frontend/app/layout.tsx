@@ -37,6 +37,16 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
+      <head>
+        {/* Runs before first paint. Without it the browser renders the final
+            state, the JS bundle then hides it to animate, and the result is a
+            visible flash of text appearing and disappearing. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `document.documentElement.classList.add("js")`,
+          }}
+        />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${display.variable} grain antialiased`}
       >

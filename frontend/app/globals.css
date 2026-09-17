@@ -45,14 +45,26 @@ body {
   color: var(--color-void);
 }
 
-/* Elements animated in on scroll start hidden. If JS never runs, this class is
-   never applied, so content stays visible rather than disappearing forever. */
+/* Pre-animation states.
+   These live in CSS, not JS, so the very first paint is already correct. If the
+   bundle never loads, `.js` is never set and everything stays visible. */
 .js .reveal-target {
   opacity: 0;
 }
 
+/* The loop section stacks its panels absolutely. Without an initial state the
+   browser paints all three, and the last one in the DOM wins -- so the results
+   panel flashes up before the prompt panel it is supposed to follow. */
+.js .loop-panel {
+  opacity: 0;
+}
+.js .loop-panel-0 {
+  opacity: 1;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .js .reveal-target {
+  .js .reveal-target,
+  .js .loop-panel {
     opacity: 1 !important;
     transform: none !important;
   }

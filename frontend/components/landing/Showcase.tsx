@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { gsap, prefersReducedMotion } from "@/lib/gsap";
+import { LazyVideo } from "@/components/ui/LazyVideo";
 
 const SHOTS = [
   {
@@ -76,7 +77,7 @@ export function Showcase() {
           start: "top top",
           end: () => `+=${distance()}`,
           pin: true,
-          scrub: 0.7,
+          scrub: 0.5,
           invalidateOnRefresh: true,
           anticipatePin: 1,
         },
@@ -115,15 +116,10 @@ export function Showcase() {
             <div
               className={`${s.ratio} w-[clamp(240px,30vw,380px)] overflow-hidden rounded-2xl border border-line bg-panel`}
             >
-              <video
+              <LazyVideo
                 src={`/showcase/${s.clip}.mp4`}
                 poster={`/showcase/${s.clip}.jpg`}
                 className="h-full w-full object-cover"
-                autoPlay
-                muted
-                loop
-                playsInline
-                preload="none"
               />
             </div>
             <figcaption className="mt-3 flex items-center justify-between font-mono text-[11px] uppercase tracking-wider">

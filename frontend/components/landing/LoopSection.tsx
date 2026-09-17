@@ -85,7 +85,7 @@ export function LoopSection() {
       ScrollTrigger.create({
         trigger: root.current,
         start: "top top",
-        end: "+=2100",
+        end: "+=1500",
         pin: true,
         anticipatePin: 1,
         invalidateOnRefresh: true,
@@ -183,15 +183,13 @@ export function LoopSection() {
             <div className="grid h-full grid-cols-2 gap-2 p-8">
               {["rain-city", "neon-street", "coastline", "desert"].map(
                 (clip) => (
-                  <video
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img
                     key={clip}
-                    src={`/showcase/${clip}.mp4`}
+                    src={`/showcase/${clip}.jpg`}
+                    alt=""
+                    loading="lazy"
                     className="h-full w-full rounded-xl border border-line object-cover"
-                    muted
-                    loop
-                    playsInline
-                    autoPlay
-                    preload="none"
                   />
                 ),
               )}
@@ -214,7 +212,7 @@ function LoopPanel({
 }) {
   return (
     <div
-      className={`panel-${index} reveal-target overflow-hidden rounded-2xl border border-line bg-panel ${
+      className={`panel-${index} loop-panel loop-panel-${index} overflow-hidden rounded-2xl border border-line bg-panel ${
         reduced ? "aspect-[4/3]" : "absolute inset-0"
       }`}
     >
