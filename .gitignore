@@ -9,3 +9,5 @@ build/
 !.agent-logs/*
 .env
 .env.local
+__pycache__/
+*.pyc
