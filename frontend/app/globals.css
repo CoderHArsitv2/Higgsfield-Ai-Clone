@@ -1,0 +1,103 @@
+@import "tailwindcss";
+
+/*
+  One accent, a lot of dark neutrals, and generous space.
+  The original site fights itself with competing bright surfaces; the fix here
+  is a single vivid colour used sparingly, so when it appears it means
+  something (a CTA, an unlocked model, a live job).
+*/
+@theme {
+  --color-void: #08080a;
+  --color-panel: #101014;
+  --color-panel-2: #17171c;
+  --color-line: #232329;
+  --color-fg: #f3f3f1;
+  --color-muted: #8b8b96;
+  --color-dim: #5b5b66;
+
+  --color-accent: #ff5a36;
+  --color-accent-soft: #ff8a6b;
+  --color-iris: #8a7cff;
+  --color-mint: #4fd1a5;
+
+  --font-display: var(--font-display), ui-serif, Georgia, serif;
+  --font-sans: var(--font-geist-sans), system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+html {
+  background: var(--color-void);
+  color-scheme: dark;
+}
+
+body {
+  background: var(--color-void);
+  color: var(--color-fg);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+::selection {
+  background: var(--color-accent);
+  color: var(--color-void);
+}
+
+/* Elements animated in on scroll start hidden. If JS never runs, this class is
+   never applied, so content stays visible rather than disappearing forever. */
+.js .reveal-target {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .js .reveal-target {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.grain::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 60;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.hairline {
+  border-color: var(--color-line);
+}
+
+.marquee-track {
+  animation: marquee 34s linear infinite;
+}
+@keyframes marquee {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-void);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-line);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-dim);
+}

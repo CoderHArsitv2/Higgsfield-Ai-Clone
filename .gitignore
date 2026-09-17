@@ -16,3 +16,10 @@ __pycache__/
 backend/.media/
 backend/bin/
 backend/.env
+
+# frontend
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/.env*.local
+frontend/.env
