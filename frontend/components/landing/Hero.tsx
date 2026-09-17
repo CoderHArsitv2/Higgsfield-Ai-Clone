@@ -45,7 +45,7 @@ export function Hero({ modelCount }: { modelCount: number }) {
             duration: 1.1,
             stagger: { each: 0.016, from: "start" },
           })
-          .from(".hero-sub", { opacity: 0, y: 18, duration: 0.9 }, "-=0.72")
+          .from(".hero-sub", { opacity: 0, y: 18, duration: 4 }, "-=0.72")
           .from(
             ".hero-cta",
             { opacity: 0, y: 16, duration: 0.8, stagger: 0.08 },
@@ -75,7 +75,7 @@ export function Hero({ modelCount }: { modelCount: number }) {
 
         // Headline drifts up as you scroll away; the glow lags behind it.
         gsap.to(".hero-parallax", {
-          yPercent: -9,
+          yPercent: -4 ,
           ease: "none",
           scrollTrigger: {
             trigger: root.current,

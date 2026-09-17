@@ -98,7 +98,12 @@ export function ModelWall({ models }: { models: PublicModel[] }) {
           </div>
         </div>
 
-        <div className="grid gap-px overflow-hidden rounded-2xl border border-line bg-line sm:grid-cols-2 lg:grid-cols-3">
+        {/* Separate tiles rather than one bordered block. The catalogue length
+            is not a multiple of the column count at any breakpoint, so a single
+            block always ends on a partial row -- which reads as a broken edge
+            however the separators are drawn. Tiles make a partial row look
+            deliberate, and the count can change freely as filters are applied. */}
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {shown.map((m) => (
             <ModelCard key={m.id} model={m} />
           ))}
@@ -111,8 +116,8 @@ export function ModelWall({ models }: { models: PublicModel[] }) {
 function ModelCard({ model }: { model: PublicModel }) {
   return (
     <article
-      className={`model-card group relative flex min-h-[172px] flex-col justify-between bg-void p-6 transition-colors hover:bg-panel ${
-        model.enabled ? "" : "opacity-65"
+      className={`model-card group relative flex min-h-[172px] flex-col justify-between overflow-hidden rounded-xl border border-line bg-void p-6 transition-colors hover:border-dim hover:bg-panel ${
+        model.enabled ? "" : "opacity-60"
       }`}
     >
       <div>
