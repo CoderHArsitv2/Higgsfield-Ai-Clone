@@ -193,3 +193,12 @@ such prefix, which is why the canaries are clean.
 It was written by the pre-fix hook, minutes before the rewrite landed. It is wrong, and
 it stays. The fix is visible in the same file: later entries in that session capture
 correctly.
+
+**h. The author handle was corrected partway through, and the logs were touched.**
+The hooks initially took the author from global git config (`CoderHArsit`); the correct
+handle is `coderHArsitv2`. I updated the `author:` field in the YAML frontmatter and the
+header line of the already-written log files. That is metadata, and it is regenerated on
+every append anyway. **No `LOG_ENTRY` body was edited.** One response entry in
+`4d79eab0` still contains the string `CoderHArsit` inside its text, because that is what
+was actually said at the time — it was deliberately left alone. The three commits made
+before the correction were re-authored via `git filter-branch`; nothing had been pushed.

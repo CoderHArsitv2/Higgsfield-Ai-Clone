@@ -15,7 +15,7 @@ import sys
 import time
 
 TOOL = "claude-code"
-AUTHOR = "CoderHArsit"
+AUTHOR = "coderHArsitv2"
 
 # State lives outside the repo so it never pollutes the committed log dir.
 STATE_DIR = os.path.expanduser("~/.claude/.agent-capture-state")
