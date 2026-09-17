@@ -39,21 +39,38 @@ export function Hero({ modelCount }: { modelCount: number }) {
 
         const tl = gsap.timeline({ defaults: { ease: "expo.out" } });
 
-        tl.set(".reveal-target", { opacity: 1 })
+        // fromTo, not from.
+        //
+        // A `from()` tween renders immediately on creation and records the
+        // element's *current* value as its destination. These elements are held
+        // at opacity 0 by CSS before the animation runs, so `from({opacity: 0})`
+        // recorded 0 as the end value and animated 0 -> 0, leaving the subtext
+        // and buttons permanently invisible. The `tl.set()` that would have
+        // raised them sits inside the timeline and had not executed yet.
+        // Stating both ends explicitly removes the dependency on whatever the
+        // stylesheet happens to say at build time.
+        tl.set(headline.current, { opacity: 1 })
           .from(split.chars, {
             yPercent: 115,
             duration: 1.1,
             stagger: { each: 0.016, from: "start" },
           })
-          .from(".hero-sub", { opacity: 0, y: 18, duration: 4 }, "-=0.72")
-          .from(
+          .fromTo(
+            ".hero-sub",
+            { opacity: 0, y: 18 },
+            { opacity: 1, y: 0, duration: 0.9 },
+            "-=0.72",
+          )
+          .fromTo(
             ".hero-cta",
-            { opacity: 0, y: 16, duration: 0.8, stagger: 0.08 },
+            { opacity: 0, y: 16 },
+            { opacity: 1, y: 0, duration: 0.8, stagger: 0.08 },
             "-=0.66",
           )
-          .from(
+          .fromTo(
             ".hero-meta",
-            { opacity: 0, duration: 0.8, stagger: 0.06 },
+            { opacity: 0 },
+            { opacity: 1, duration: 0.8, stagger: 0.06 },
             "-=0.6",
           );
 
@@ -75,7 +92,7 @@ export function Hero({ modelCount }: { modelCount: number }) {
 
         // Headline drifts up as you scroll away; the glow lags behind it.
         gsap.to(".hero-parallax", {
-          yPercent: -4 ,
+          yPercent: -4,
           ease: "none",
           scrollTrigger: {
             trigger: root.current,

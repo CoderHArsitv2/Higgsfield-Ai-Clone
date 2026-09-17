@@ -17,18 +17,26 @@ export function LazyVideo({
   poster,
   className,
   eager = false,
+  active = true,
 }: {
   src: string;
   poster?: string;
   className?: string;
   /** Above the fold: fetch metadata up front so playback starts promptly. */
   eager?: boolean;
+  /** False keeps the clip paused on its poster even while on screen. */
+  active?: boolean;
 }) {
   const ref = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
+
+    if (!active) {
+      if (!el.paused) el.pause();
+      return;
+    }
 
     const io = new IntersectionObserver(
       ([entry]) => {
@@ -45,7 +53,7 @@ export function LazyVideo({
 
     io.observe(el);
     return () => io.disconnect();
-  }, []);
+  }, [active]);
 
   return (
     <video
