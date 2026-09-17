@@ -36,7 +36,9 @@ func testDB(t *testing.T) *gorm.DB {
 	if err != nil {
 		t.Fatalf("connect: %v", err)
 	}
-	if err := db.AutoMigrate(models.All()...); err != nil {
+	// AutoMigrate here rather than the SQL migrations: tests want a schema that
+	// matches the structs without migration bookkeeping in a shared database.
+	if err := models.AutoMigrate(db); err != nil {
 		t.Fatalf("migrate: %v", err)
 	}
 	return db
@@ -70,9 +72,17 @@ func harness(t *testing.T, db *gorm.DB) (*Generations, *Worker) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	keys := NewKeys(db, cipher, reg)
-	log := slog.New(slog.NewTextHandler(io.Discard, nil))
-	return NewGenerations(db, reg, keys), NewWorker(db, reg, keys, time.Second, 2, log)
+	stores := models.New(db)
+	keys := NewKeys(stores.Keys, cipher, reg)
+	// TEST_LOG=1 surfaces the worker's own logging, which is the quickest way to
+	// see what a generation actually did.
+	var sink io.Writer = io.Discard
+	if os.Getenv("TEST_LOG") != "" {
+		sink = os.Stdout
+	}
+	log := slog.New(slog.NewTextHandler(sink, &slog.HandlerOptions{Level: slog.LevelDebug}))
+	return NewGenerations(stores, reg, keys, log),
+		NewWorker(stores, reg, keys, time.Second, 2, log)
 }
 
 func TestGenerationReachesSuccess(t *testing.T) {
@@ -182,7 +192,7 @@ func TestCreateRejectsEmptyPrompt(t *testing.T) {
 // found nothing, and creating a generation failed on the users foreign key.
 func TestUpsertReturnsThePersistedUser(t *testing.T) {
 	db := testDB(t)
-	users := NewUsers(db)
+	users := models.New(db).Users
 	ctx := context.Background()
 
 	claims := jwtx.Claims{
@@ -240,7 +250,7 @@ func TestUpsertReturnsThePersistedUser(t *testing.T) {
 // top-ups.
 func TestUpsertDoesNotResetCredits(t *testing.T) {
 	db := testDB(t)
-	users := NewUsers(db)
+	users := models.New(db).Users
 	ctx := context.Background()
 	claims := jwtx.Claims{Subject: "auth0|credits-" + time.Now().Format("150405.000000000")}
 

@@ -3,6 +3,7 @@
 package controllers
 
 import (
+	"github.com/coderHArsitv2/higgsfield-clone/backend/internal/models"
 	"github.com/coderHArsitv2/higgsfield-clone/backend/internal/provider"
 	"github.com/coderHArsitv2/higgsfield-clone/backend/internal/services"
 )
@@ -11,5 +12,5 @@ type Deps struct {
 	Registry    *provider.Registry
 	Generations *services.Generations
 	Keys        *services.Keys
-	Users       *services.Users
+	Users       models.UserStore
 }

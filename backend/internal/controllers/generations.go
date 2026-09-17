@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/coderHArsitv2/higgsfield-clone/backend/internal/middleware"
+	"github.com/coderHArsitv2/higgsfield-clone/backend/internal/models"
 	"github.com/coderHArsitv2/higgsfield-clone/backend/internal/services"
 	"github.com/coderHArsitv2/higgsfield-clone/backend/pkg/apierr"
 )
@@ -38,7 +39,7 @@ func (h *Generations) List(c *gin.Context) {
 	limit, _ := strconv.Atoi(c.Query("limit"))
 	offset, _ := strconv.Atoi(c.Query("offset"))
 
-	rows, total, err := h.Generations.List(c.Request.Context(), user.ID, services.ListFilter{
+	rows, total, err := h.Generations.List(c.Request.Context(), user.ID, models.GenerationFilter{
 		Status:   c.Query("status"),
 		Modality: c.Query("modality"),
 		Limit:    limit,

@@ -6,7 +6,6 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/coderHArsitv2/higgsfield-clone/backend/internal/models"
-	"github.com/coderHArsitv2/higgsfield-clone/backend/internal/services"
 	"github.com/coderHArsitv2/higgsfield-clone/backend/pkg/apierr"
 	"github.com/coderHArsitv2/higgsfield-clone/backend/pkg/jwtx"
 )
@@ -16,7 +15,7 @@ const userKey = "current_user"
 // Auth verifies the Auth0 access token and provisions the local user row on
 // first sight. There is no signup endpoint by design: the first authenticated
 // request *is* the signup, so Auth0 remains the only place identity is managed.
-func Auth(v *jwtx.Validator, users *services.Users) gin.HandlerFunc {
+func Auth(v *jwtx.Validator, users models.UserStore) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		raw := c.GetHeader("Authorization")
 		if !strings.HasPrefix(strings.ToLower(raw), "bearer ") {

@@ -9,7 +9,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 )
@@ -35,6 +37,45 @@ func (c *Client) WithHeader(k, v string) *Client {
 	}
 	clone.headers[k] = v
 	return clone
+}
+
+// safePath strips the query string except for its parameter names.
+//
+// Some providers authenticate by query parameter rather than header -- Gemini
+// puts the API key in ?key= -- so logging a raw URL would write live
+// credentials into the log.
+func safePath(raw string) string {
+	u, err := url.Parse(raw)
+	if err != nil {
+		return "(unparseable url)"
+	}
+	if u.RawQuery == "" {
+		return u.Path
+	}
+	names := make([]string, 0, 4)
+	for k := range u.Query() {
+		names = append(names, k)
+	}
+	return u.Path + "?[" + strings.Join(names, ",") + "]"
+}
+
+// logCall records every outbound provider request, so "did a call actually go
+// out, and what came back" is answerable from the log alone.
+func (c *Client) logCall(method, path string, status int, took time.Duration, err error) {
+	attrs := []any{
+		"method", method,
+		"url", c.base + safePath(path),
+		"ms", took.Milliseconds(),
+	}
+	if err != nil {
+		slog.Default().Error("provider call failed", append(attrs, "error", err.Error())...)
+		return
+	}
+	if status >= 400 {
+		slog.Default().Error("provider call rejected", append(attrs, "status", status)...)
+		return
+	}
+	slog.Default().Info("provider call", append(attrs, "status", status)...)
 }
 
 type StatusError struct {
@@ -68,11 +109,14 @@ func (c *Client) JSON(ctx context.Context, method, path string, body, out any) e
 		req.Header.Set(k, v)
 	}
 
+	started := time.Now()
 	res, err := c.http.Do(req)
 	if err != nil {
+		c.logCall(method, path, 0, time.Since(started), err)
 		return err
 	}
 	defer res.Body.Close()
+	c.logCall(method, path, res.StatusCode, time.Since(started), nil)
 
 	raw, _ := io.ReadAll(io.LimitReader(res.Body, 1<<20))
 	if res.StatusCode < 200 || res.StatusCode >= 300 {
@@ -107,11 +151,14 @@ func (c *Client) Bytes(ctx context.Context, method, path string, body any) ([]by
 		req.Header.Set(k, v)
 	}
 
+	started := time.Now()
 	res, err := c.http.Do(req)
 	if err != nil {
+		c.logCall(method, path, 0, time.Since(started), err)
 		return nil, "", err
 	}
 	defer res.Body.Close()
+	c.logCall(method, path, res.StatusCode, time.Since(started), nil)
 
 	raw, err := io.ReadAll(io.LimitReader(res.Body, 200<<20))
 	if err != nil {

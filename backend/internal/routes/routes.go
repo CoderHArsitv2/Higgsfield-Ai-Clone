@@ -4,8 +4,8 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/coderHArsitv2/higgsfield-clone/backend/internal/models"
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 
 	"github.com/coderHArsitv2/higgsfield-clone/backend/internal/config"
 	"github.com/coderHArsitv2/higgsfield-clone/backend/internal/controllers"
@@ -15,7 +15,7 @@ import (
 
 type Options struct {
 	Config    *config.Config
-	DB        *gorm.DB
+	Stores    *models.Stores
 	Validator *jwtx.Validator
 	Deps      controllers.Deps
 	MediaDir  string
@@ -30,7 +30,7 @@ func Register(r *gin.Engine, o Options) {
 	r.Static("/media", o.MediaDir)
 
 	r.GET("/health", func(c *gin.Context) {
-		sql, err := o.DB.DB()
+		sql, err := o.Stores.DB().DB()
 		if err != nil || sql.Ping() != nil {
 			c.JSON(http.StatusServiceUnavailable, gin.H{"status": "degraded", "database": "unreachable"})
 			return

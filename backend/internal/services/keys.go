@@ -2,14 +2,10 @@ package services
 
 import (
 	"context"
-	"errors"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/google/uuid"
-	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 
 	"github.com/coderHArsitv2/higgsfield-clone/backend/internal/models"
 	"github.com/coderHArsitv2/higgsfield-clone/backend/internal/provider"
@@ -21,25 +17,23 @@ import (
 // never sent back to the client -- only a masked preview is -- so a compromised
 // session cannot exfiltrate the user's billing credential.
 type Keys struct {
-	db       *gorm.DB
+	store    models.APIKeyStore
 	cipher   *cryptox.Cipher
 	registry *provider.Registry
 }
 
-func NewKeys(db *gorm.DB, cipher *cryptox.Cipher, reg *provider.Registry) *Keys {
-	return &Keys{db: db, cipher: cipher, registry: reg}
+func NewKeys(store models.APIKeyStore, cipher *cryptox.Cipher, reg *provider.Registry) *Keys {
+	return &Keys{store: store, cipher: cipher, registry: reg}
 }
 
 func (k *Keys) List(ctx context.Context, userID uuid.UUID) ([]models.UserAPIKey, error) {
-	var out []models.UserAPIKey
-	err := k.db.WithContext(ctx).Where("user_id = ?", userID).Order("provider_id").Find(&out).Error
-	return out, err
+	return k.store.List(ctx, userID)
 }
 
 // ProviderSet is the set of providers this user has a key for, used to decide
 // which models show as unlocked.
 func (k *Keys) ProviderSet(ctx context.Context, userID uuid.UUID) (map[string]bool, error) {
-	rows, err := k.List(ctx, userID)
+	rows, err := k.store.List(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -73,50 +67,40 @@ func (k *Keys) Save(ctx context.Context, userID uuid.UUID, providerID, raw strin
 		Encrypted:  enc,
 		Preview:    cryptox.Mask(raw),
 	}
-	// Re-saving replaces the key rather than erroring, which is what a user
-	// rotating a credential expects.
-	err = k.db.WithContext(ctx).Clauses(clause.OnConflict{
-		Columns:   []clause.Column{{Name: "user_id"}, {Name: "provider_id"}},
-		DoUpdates: clause.AssignmentColumns([]string{"encrypted", "preview", "updated_at"}),
-	}).Create(&row).Error
-	if err != nil {
+	if err := k.store.Upsert(ctx, &row); err != nil {
 		return nil, err
 	}
 	return &row, nil
 }
 
 func (k *Keys) Delete(ctx context.Context, userID uuid.UUID, providerID string) error {
-	res := k.db.WithContext(ctx).
-		Where("user_id = ? AND provider_id = ?", userID, providerID).
-		Delete(&models.UserAPIKey{})
-	if res.Error != nil {
-		return res.Error
+	removed, err := k.store.Delete(ctx, userID, providerID)
+	if err != nil {
+		return err
 	}
-	if res.RowsAffected == 0 {
+	if !removed {
 		return apierr.ErrNotFound
 	}
 	return nil
 }
 
-// Plaintext decrypts a user's key for a single outbound call.
+// Plaintext decrypts a user's key for a single outbound call. An empty string
+// with no error means the user simply has no key for that provider.
 func (k *Keys) Plaintext(ctx context.Context, userID uuid.UUID, providerID string) (string, error) {
-	var row models.UserAPIKey
-	err := k.db.WithContext(ctx).
-		Where("user_id = ? AND provider_id = ?", userID, providerID).
-		First(&row).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return "", nil
-	}
+	row, err := k.store.ByProvider(ctx, userID, providerID)
 	if err != nil {
 		return "", err
 	}
+	if row == nil {
+		return "", nil
+	}
+
 	plain, err := k.cipher.Decrypt(row.Encrypted)
 	if err != nil {
 		// Almost always means ENCRYPTION_KEY changed under existing rows.
 		return "", apierr.New(http.StatusConflict, "key_undecryptable",
 			"your stored "+providerID+" key could not be decrypted; please re-add it")
 	}
-	now := time.Now()
-	k.db.WithContext(ctx).Model(&row).UpdateColumn("last_used_at", &now)
+	_ = k.store.MarkUsed(ctx, row.ID)
 	return plain, nil
 }

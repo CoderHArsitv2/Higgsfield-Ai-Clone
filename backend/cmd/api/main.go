@@ -46,10 +46,12 @@ func run(log *slog.Logger) error {
 	if err != nil {
 		return err
 	}
-	if err := db.AutoMigrate(models.All()...); err != nil {
+	// Explicit, reviewable SQL rather than AutoMigrate, which never drops or
+	// narrows a column and so lets the schema drift silently from the structs.
+	if err := models.Migrate(context.Background(), db, log); err != nil {
 		return err
 	}
-	log.Info("database ready")
+	stores := models.New(db)
 
 	cipher, err := cryptox.New(cfg.EncryptionKey)
 	if err != nil {
@@ -78,14 +80,13 @@ func run(log *slog.Logger) error {
 			"unlocked", registry.PlatformCovers(p.ID()), "env_key", p.EnvKey())
 	}
 
-	keys := services.NewKeys(db, cipher, registry)
-	gens := services.NewGenerations(db, registry, keys)
-	users := services.NewUsers(db)
+	keys := services.NewKeys(stores.Keys, cipher, registry)
+	gens := services.NewGenerations(stores, registry, keys, log)
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	services.NewWorker(db, registry, keys, cfg.PollInterval, cfg.WorkerCount, log).Start(ctx)
+	services.NewWorker(stores, registry, keys, cfg.PollInterval, cfg.WorkerCount, log).Start(ctx)
 
 	if cfg.IsProd() {
 		gin.SetMode(gin.ReleaseMode)
@@ -93,10 +94,10 @@ func run(log *slog.Logger) error {
 	r := gin.New()
 	routes.Register(r, routes.Options{
 		Config:    cfg,
-		DB:        db,
+		Stores:    stores,
 		Validator: jwtx.NewValidator(cfg.Auth0Domain, cfg.Auth0Audience),
 		Deps: controllers.Deps{
-			Registry: registry, Generations: gens, Keys: keys, Users: users,
+			Registry: registry, Generations: gens, Keys: keys, Users: stores.Users,
 		},
 		MediaDir: mediaDir,
 		Log:      log,

@@ -52,13 +52,56 @@ backend/
     config/             env parsing, fails fast on bad config
     controllers/        HTTP layer only — no SQL, no provider calls
     middleware/         Auth0 token verification, CORS, logging
-    models/             gorm models
+    models/             one file per table: struct + its queries
+      base.go             shared id/timestamps, the jsonb column type
+      store.go            the interfaces everything else depends on
+      user.go             User + userStore
+      api_key.go          UserAPIKey + apiKeyStore
+      generation.go       Generation + generationStore
+      asset.go            Asset + assetStore
+      migrate.go          AutoMigrate over the table list
     provider/           the vendor seam (see below)
     routes/             route table
     services/           generation lifecycle, BYOK keys, polling worker
     storage/            re-hosts provider output that arrives as raw bytes
   pkg/
     apierr/  cryptox/  httpx/  jwtx/
+
+### Data access
+
+Each table has one file holding its struct and every query that touches it.
+Nothing outside `models/` writes SQL: services take the interfaces from
+`store.go` (`UserStore`, `GenerationStore`, `APIKeyStore`, `AssetStore`), so a
+service can be exercised against a fake and a query can be changed in one place.
+
+`Stores.Tx` runs a function with every store bound to one transaction, which is
+what credit accounting needs — deducting credits and inserting the job have to
+succeed or fail together.
+
+Schema changes go through `gorm`'s AutoMigrate over the table list in
+`migrate.go`; the struct tags are the only description of the schema. AutoMigrate
+only ever adds, so renaming a field leaves the old column behind and anything
+destructive has to be done deliberately.
+
+### Following a generation
+
+Every step of a job logs, so "did a request actually go out, and what came back"
+is answerable from the log alone:
+
+```
+generation queued      model=mock/still own_key=false cost=1 credits_left=99
+submitting to provider attempt=1 params="map[aspect_ratio:16:9 style:cinematic]"
+provider call          method=POST url=https://queue.fal.run/... status=200 ms=412
+provider accepted job  took=412ms external_id=...
+still running          progress=50            (debug level)
+generation succeeded   assets=2 total=7s
+```
+
+Provider URLs are logged with the query string reduced to its parameter *names*:
+some vendors authenticate by query parameter rather than header, so logging a raw
+URL would write live credentials into the log.
+
+`TEST_LOG=1` turns the same logging on in the integration tests.
 
 frontend/
   app/                  routes; /api/proxy attaches the access token server-side

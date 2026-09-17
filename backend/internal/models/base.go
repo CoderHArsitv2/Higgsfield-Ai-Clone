@@ -1,10 +1,33 @@
+// Package models holds one file per table. Each file carries the struct and the
+// queries for that table together, so everything that can touch a table lives
+// in one place.
+//
+// Callers depend on the interfaces in store.go rather than on these types'
+// methods, which keeps SQL out of the services and controllers entirely.
 package models
 
 import (
 	"database/sql/driver"
 	"encoding/json"
 	"errors"
+	"time"
+
+	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
+
+type Base struct {
+	ID        uuid.UUID `gorm:"type:uuid;primaryKey" json:"id"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+func (b *Base) BeforeCreate(*gorm.DB) error {
+	if b.ID == uuid.Nil {
+		b.ID = uuid.New()
+	}
+	return nil
+}
 
 // JSON is a jsonb column.
 //
@@ -45,4 +68,9 @@ func (j JSON) MarshalJSON() ([]byte, error) {
 func (j *JSON) UnmarshalJSON(b []byte) error {
 	*j = JSON(append([]byte(nil), b...))
 	return nil
+}
+
+// tables is the migration order, and the order AutoMigrate would need too.
+func tables() []any {
+	return []any{&User{}, &UserAPIKey{}, &Generation{}, &Asset{}}
 }

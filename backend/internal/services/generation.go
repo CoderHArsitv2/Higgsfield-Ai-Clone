@@ -4,11 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"strings"
-	"time"
 
 	"github.com/google/uuid"
-	"gorm.io/gorm"
 
 	"github.com/coderHArsitv2/higgsfield-clone/backend/internal/models"
 	"github.com/coderHArsitv2/higgsfield-clone/backend/internal/provider"
@@ -16,13 +15,14 @@ import (
 )
 
 type Generations struct {
-	db       *gorm.DB
+	stores   *models.Stores
 	registry *provider.Registry
 	keys     *Keys
+	log      *slog.Logger
 }
 
-func NewGenerations(db *gorm.DB, reg *provider.Registry, keys *Keys) *Generations {
-	return &Generations{db: db, registry: reg, keys: keys}
+func NewGenerations(stores *models.Stores, reg *provider.Registry, keys *Keys, log *slog.Logger) *Generations {
+	return &Generations{stores: stores, registry: reg, keys: keys, log: log}
 }
 
 type CreateInput struct {
@@ -46,7 +46,8 @@ func (g *Generations) Create(ctx context.Context, user *models.User, in CreateIn
 		return nil, apierr.BadRequest("unknown model " + in.ModelID)
 	}
 	if len(in.RefImages) > spec.RefImages {
-		return nil, apierr.BadRequest(fmt.Sprintf("%s accepts at most %d reference images", spec.Name, spec.RefImages))
+		return nil, apierr.BadRequest(fmt.Sprintf(
+			"%s accepts at most %d reference images", spec.Name, spec.RefImages))
 	}
 
 	userKey, err := g.keys.Plaintext(ctx, user.ID, p.ID())
@@ -55,7 +56,11 @@ func (g *Generations) Create(ctx context.Context, user *models.User, in CreateIn
 	}
 	_, ownKey, err := g.registry.ResolveKey(p.ID(), userKey)
 	if err != nil {
-		return nil, apierr.Unprocessable(spec.Name + " is locked. Add a " + p.Name() + " API key in settings to use it.")
+		g.log.Warn("generation refused: no credential",
+			"user", user.ID, "model", spec.ID, "provider", p.ID(),
+			"has_user_key", userKey != "")
+		return nil, apierr.Unprocessable(spec.Name + " is locked. Add a " +
+			p.Name() + " API key in settings to use it.")
 	}
 
 	// A user paying with their own key does not spend platform credits.
@@ -81,22 +86,18 @@ func (g *Generations) Create(ctx context.Context, user *models.User, in CreateIn
 		UsedOwnKey: ownKey,
 	}
 
-	err = g.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if err := tx.Create(&gen).Error; err != nil {
+	err = g.stores.Tx(ctx, func(tx *models.Stores) error {
+		if err := tx.Generations.Create(ctx, &gen); err != nil {
 			return err
 		}
 		if ownKey {
 			return nil
 		}
-		// Conditional decrement: two concurrent submissions cannot both pass
-		// the balance check above and overdraw the account.
-		res := tx.Model(&models.User{}).
-			Where("id = ? AND credits >= ?", user.ID, spec.CreditCost).
-			UpdateColumn("credits", gorm.Expr("credits - ?", spec.CreditCost))
-		if res.Error != nil {
-			return res.Error
+		paid, err := tx.Users.Spend(ctx, user.ID, spec.CreditCost)
+		if err != nil {
+			return err
 		}
-		if res.RowsAffected == 0 {
+		if !paid {
 			return apierr.Unprocessable("not enough credits")
 		}
 		user.Credits -= spec.CreditCost
@@ -105,6 +106,12 @@ func (g *Generations) Create(ctx context.Context, user *models.User, in CreateIn
 	if err != nil {
 		return nil, err
 	}
+
+	g.log.Info("generation queued",
+		"generation", gen.ID, "user", user.ID, "model", gen.ModelID,
+		"provider", gen.ProviderID, "modality", gen.Modality,
+		"own_key", ownKey, "cost", spec.CreditCost,
+		"credits_left", user.Credits, "prompt_chars", len(prompt))
 
 	return &gen, nil
 }
@@ -125,60 +132,28 @@ func normaliseParams(spec provider.ModelSpec, in map[string]any) map[string]any 
 	return out
 }
 
-type ListFilter struct {
-	Status   string
-	Modality string
-	Limit    int
-	Offset   int
-}
-
-func (g *Generations) List(ctx context.Context, userID uuid.UUID, f ListFilter) ([]models.Generation, int64, error) {
-	if f.Limit <= 0 || f.Limit > 100 {
-		f.Limit = 24
-	}
-	q := g.db.WithContext(ctx).Model(&models.Generation{}).Where("user_id = ?", userID)
-	if f.Status != "" {
-		q = q.Where("status = ?", f.Status)
-	}
-	if f.Modality != "" {
-		q = q.Where("modality = ?", f.Modality)
-	}
-
-	var total int64
-	if err := q.Count(&total).Error; err != nil {
-		return nil, 0, err
-	}
-
-	var out []models.Generation
-	err := q.Preload("Assets").Order("created_at DESC").
-		Limit(f.Limit).Offset(f.Offset).Find(&out).Error
-	return out, total, err
+func (g *Generations) List(ctx context.Context, userID uuid.UUID, f models.GenerationFilter) ([]models.Generation, int64, error) {
+	return g.stores.Generations.List(ctx, userID, f)
 }
 
 func (g *Generations) Get(ctx context.Context, userID, id uuid.UUID) (*models.Generation, error) {
-	var gen models.Generation
-	err := g.db.WithContext(ctx).Preload("Assets").
-		Where("id = ? AND user_id = ?", id, userID).First(&gen).Error
+	gen, err := g.stores.Generations.ByID(ctx, userID, id)
 	if err != nil {
 		return nil, apierr.ErrNotFound
 	}
-	return &gen, nil
+	return gen, nil
 }
 
 func (g *Generations) Cancel(ctx context.Context, userID, id uuid.UUID) (*models.Generation, error) {
-	gen, err := g.Get(ctx, userID, id)
-	if err != nil {
-		return nil, err
-	}
-	if gen.Status.Terminal() {
+	gen, err := g.stores.Generations.Cancel(ctx, userID, id)
+	switch {
+	case err == models.ErrAlreadyFinished:
 		return nil, apierr.Conflict("this generation has already finished")
-	}
-	now := time.Now()
-	gen.Status = models.StatusCanceled
-	gen.CompletedAt = &now
-	if err := g.db.WithContext(ctx).Model(gen).
-		Updates(map[string]any{"status": gen.Status, "completed_at": gen.CompletedAt}).Error; err != nil {
+	case err != nil && models.IsNotFound(err):
+		return nil, apierr.ErrNotFound
+	case err != nil:
 		return nil, err
 	}
+	g.log.Info("generation canceled", "generation", id, "user", userID)
 	return gen, nil
 }
