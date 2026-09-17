@@ -16,6 +16,8 @@ import (
 // touching this file -- the provider declares which env var it wants.
 type Config struct {
 	Env           string
+	Version       string
+	Commit        string
 	Port          string
 	DatabaseURL   string
 	CORSOrigins   []string
@@ -31,7 +33,12 @@ func Load() (*Config, error) {
 	loadDotenv()
 
 	c := &Config{
-		Env:           env("APP_ENV", "development"),
+		Env: env("APP_ENV", "development"),
+		// APP_VERSION is the release tag, set by the deploy workflow.
+		// RENDER_GIT_COMMIT is injected by Render on every build, so even an
+		// untagged deploy can be traced back to a commit.
+		Version:       env("APP_VERSION", "dev"),
+		Commit:        firstOf(os.Getenv("RENDER_GIT_COMMIT"), os.Getenv("GIT_COMMIT"), "unknown"),
 		Port:          env("PORT", "8080"),
 		DatabaseURL:   os.Getenv("DATABASE_URL"),
 		Auth0Domain:   strings.TrimSuffix(os.Getenv("AUTH0_DOMAIN"), "/"),
@@ -113,6 +120,15 @@ func (c *Config) validate() error {
 }
 
 func (c *Config) IsProd() bool { return c.Env == "production" }
+
+func firstOf(values ...string) string {
+	for _, v := range values {
+		if v != "" {
+			return v
+		}
+	}
+	return ""
+}
 
 func env(k, def string) string {
 	if v := os.Getenv(k); v != "" {

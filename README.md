@@ -293,29 +293,9 @@ create → queue → worker submit → poll → assets → credit accounting.
 
 ## Deployment
 
-Production only — there is no staging environment, by design.
-
-`.github/workflows/deploy-prod.yml` runs on push to `main`: a test gate, then
-two parallel deploys. The Render step polls the deploy to a terminal state and
-then health-checks the service, because a fire-and-forget deploy hook reports
-green even when the deploy failed.
-
-**Required secrets:**
-
-| Secret | Used for |
-| --- | --- |
-| `RENDER_API_KEY`, `RENDER_SERVICE_ID`, `BACKEND_PUBLIC_URL` | Backend deploy + health check |
-| `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` | Frontend deploy |
-
-`render.yaml` is a blueprint for the service and database. Set `CORS_ORIGINS` to
-the Vercel domain and `PUBLIC_BASE_URL` to the Render domain.
-
-> **Note on media storage.** Providers that return raw bytes get re-hosted to
-> local disk, which is ephemeral on Render unless you attach a disk at
-> `/app/.media`. The `storage.Storage` interface is one method wide so swapping
-> in S3/R2 is a constructor change.
-
----
+Production only — there is no staging environment, by design. Push to `main` to
+deploy; push a `v*` tag to deploy and publish a release. Full setup and
+release process: [DEPLOYMENT.md](DEPLOYMENT.md).
 
 ## Brand assets
 

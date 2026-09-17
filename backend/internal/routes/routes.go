@@ -35,7 +35,12 @@ func Register(r *gin.Engine, o Options) {
 			c.JSON(http.StatusServiceUnavailable, gin.H{"status": "degraded", "database": "unreachable"})
 			return
 		}
-		c.JSON(http.StatusOK, gin.H{"status": "ok", "env": o.Config.Env})
+		c.JSON(http.StatusOK, gin.H{
+			"status":  "ok",
+			"env":     o.Config.Env,
+			"version": o.Config.Version,
+			"commit":  o.Config.Commit,
+		})
 	})
 
 	models := controllers.NewModels(o.Deps)

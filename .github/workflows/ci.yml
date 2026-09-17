@@ -49,6 +49,11 @@ jobs:
 
       - run: go build ./...
 
+      - name: Build the image Render will build
+        # Render builds from this Dockerfile. Without this step a broken
+        # Dockerfile is only discovered during a production deploy.
+        run: docker build -f Dockerfile -t aperture-api:ci .
+
   frontend:
     name: Frontend
     runs-on: ubuntu-latest

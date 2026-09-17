@@ -1,17 +1,47 @@
 name: Deploy production
 
-# Production is the only environment. A push to main that passes the gate goes
-# straight to prod; nothing else deploys.
+# Production is the only environment.
+#
+# Two ways in, and they never both fire for one push: a branch push does not
+# match a tag filter and a tag push does not match a branch filter.
+#
+#   push to main  -> continuous deploy, version recorded as the short SHA
+#   push a v* tag -> deploy stamped with that version, plus a GitHub Release
 on:
   push:
     branches: [main]
+    tags: ["v*"]
   workflow_dispatch:
 
 concurrency:
   group: deploy-production
   cancel-in-progress: false
 
+permissions:
+  contents: write # creating the release
+
 jobs:
+  version:
+    name: Resolve version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+      is_release: ${{ steps.v.outputs.is_release }}
+    steps:
+      - id: v
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            version="${GITHUB_REF#refs/tags/}"
+            echo "is_release=true" >> "$GITHUB_OUTPUT"
+          else
+            version="main-$(echo "${GITHUB_SHA}" | cut -c1-7)"
+            echo "is_release=false" >> "$GITHUB_OUTPUT"
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "Deploying version $version"
+
+
   gate:
     name: Test gate
     runs-on: ubuntu-latest
@@ -48,20 +78,50 @@ jobs:
           node-version: 20
           cache: npm
           cache-dependency-path: frontend/package-lock.json
-      - name: Frontend typecheck and lint
+      - name: Frontend checks and build
         working-directory: frontend
+        env:
+          AUTH0_DOMAIN: ci.example.auth0.com
+          AUTH0_CLIENT_ID: ci
+          AUTH0_CLIENT_SECRET: ci
+          AUTH0_AUDIENCE: https://ci.example/api
+          AUTH0_SECRET: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+          APP_BASE_URL: http://localhost:3000
         run: |
           npm ci
           npx prettier --check .
           npx tsc --noEmit
           npx eslint .
+          npm run build
 
   backend:
     name: Deploy backend (Render)
-    needs: gate
+    needs: [version, gate]
     runs-on: ubuntu-latest
     environment: production
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
     steps:
+      - name: Stamp the version on the service
+        # Render builds the image itself, so the version cannot be baked in at
+        # build time from here. Setting it as an env var before triggering the
+        # deploy means the build that follows picks it up and reports it at
+        # /health. A failure here is not fatal: the deploy is still correct,
+        # only its label would be stale.
+        continue-on-error: true
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
+        run: |
+          set -euo pipefail
+          code=$(curl -sS -o /tmp/envvar.json -w "%{http_code}" -X PUT \
+            -H "Authorization: Bearer $RENDER_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d "{\"value\":\"$VERSION\"}" \
+            "https://api.render.com/v1/services/$RENDER_SERVICE_ID/env-vars/APP_VERSION")
+          echo "Render responded $code"
+          [ "$code" -lt 300 ] || { cat /tmp/envvar.json; echo "::warning::Could not set APP_VERSION"; }
+
       - name: Trigger deploy
         id: trigger
         env:
@@ -107,23 +167,31 @@ jobs:
           exit 1
 
       - name: Health check
+        # Checking only for status ok would pass against the instance that was
+        # already running, so this waits until /health reports the version we
+        # just deployed. That is the difference between "something answers" and
+        # "the new build is live".
         env:
           BACKEND_URL: ${{ secrets.BACKEND_PUBLIC_URL }}
         run: |
           set -euo pipefail
-          for i in $(seq 1 12); do
-            if curl -fsS "$BACKEND_URL/health" | tee /dev/stderr | grep -q '"status":"ok"'; then
-              echo "Backend healthy"
+          for i in $(seq 1 18); do
+            body=$(curl -fsS "$BACKEND_URL/health" || true)
+            echo "[$i] $body"
+            status=$(echo "$body" | jq -r '.status // empty')
+            live=$(echo "$body" | jq -r '.version // empty')
+            if [ "$status" = "ok" ] && [ "$live" = "$VERSION" ]; then
+              echo "Backend healthy on $live"
               exit 0
             fi
             sleep 10
           done
-          echo "::error::Backend did not report healthy after deploy"
+          echo "::error::Backend never reported version $VERSION"
           exit 1
 
   frontend:
     name: Deploy frontend (Vercel)
-    needs: gate
+    needs: [version, gate]
     runs-on: ubuntu-latest
     environment: production
     env:
@@ -150,3 +218,26 @@ jobs:
 
       - name: Deploy
         run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
+
+  release:
+    name: Publish release
+    needs: [version, backend, frontend]
+    if: needs.version.outputs.is_release == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # release notes are generated from history
+
+      # Only after both deploys succeeded, so a release tag never points at
+      # something that failed to reach production.
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          gh release create "$VERSION" \
+            --title "$VERSION" \
+            --generate-notes \
+            --verify-tag

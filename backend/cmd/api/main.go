@@ -110,7 +110,8 @@ func run(log *slog.Logger) error {
 	}
 
 	go func() {
-		log.Info("listening", "port", cfg.Port, "env", cfg.Env)
+		log.Info("listening", "port", cfg.Port, "env", cfg.Env,
+			"version", cfg.Version, "commit", cfg.Commit)
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Error("server error", "error", err)
 			stop()
