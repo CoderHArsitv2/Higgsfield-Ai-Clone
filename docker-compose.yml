@@ -8,7 +8,10 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: higgsfield
     ports:
-      - "5432:5432"
+      # 5433 on the host: 5432 is very often already taken by a local Postgres
+      # install, and the resulting connection goes somewhere confusing rather
+      # than failing cleanly.
+      - "5433:5432"
     volumes:
       - aperture-pgdata:/var/lib/postgresql/data
     healthcheck:

@@ -176,7 +176,7 @@ cd backend
 go test ./...                                    # unit tests, no infra needed
 
 docker compose up -d
-TEST_DATABASE_URL="postgres://postgres:postgres@localhost:5432/higgsfield?sslmode=disable" \
+TEST_DATABASE_URL="postgres://postgres:postgres@localhost:5433/higgsfield?sslmode=disable" \
   go test ./...                                  # adds the integration suite
 ```
 

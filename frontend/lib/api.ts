@@ -1,12 +1,6 @@
 "use client";
 
-import type {
-  Generation,
-  Model,
-  ProviderInfo,
-  StoredKey,
-  User,
-} from "./types";
+import type { Generation, Model, ProviderInfo, StoredKey, User } from "./types";
 
 export class ApiError extends Error {
   constructor(

@@ -64,11 +64,7 @@ export function ModelWall({ models }: { models: PublicModel[] }) {
   const enabled = models.filter((m) => m.enabled).length;
 
   return (
-    <section
-      id="models"
-      ref={root}
-      className="border-t border-line px-6 py-28"
-    >
+    <section id="models" ref={root} className="border-t border-line px-6 py-28">
       <div className="mx-auto max-w-7xl">
         <div className="wall-head mb-14 flex flex-wrap items-end justify-between gap-8">
           <div className="reveal-target">
@@ -79,9 +75,9 @@ export function ModelWall({ models }: { models: PublicModel[] }) {
               {models.length} models, nothing hidden
             </h2>
             <p className="mt-5 max-w-lg text-sm leading-relaxed text-muted">
-              <span className="text-mint">{enabled} ready to run now.</span>{" "}
-              The rest unlock the moment a key exists — ours or yours. We show
-              you the whole shelf either way.
+              <span className="text-mint">{enabled} ready to run now.</span> The
+              rest unlock the moment a key exists — ours or yours. We show you
+              the whole shelf either way.
             </p>
           </div>
 
@@ -121,9 +117,14 @@ function ModelCard({ model }: { model: PublicModel }) {
     >
       <div>
         <div className="flex items-start justify-between gap-4">
-          <h3 className="text-[15px] font-medium tracking-tight">{model.name}</h3>
+          <h3 className="text-[15px] font-medium tracking-tight">
+            {model.name}
+          </h3>
           {model.enabled ? (
-            <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-mint" title="Ready" />
+            <span
+              className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-mint"
+              title="Ready"
+            />
           ) : (
             <svg
               className="mt-0.5 shrink-0 text-dim"
@@ -133,8 +134,20 @@ function ModelCard({ model }: { model: PublicModel }) {
               fill="none"
               aria-label="Locked"
             >
-              <rect x="2.5" y="6" width="9" height="6.5" rx="1.5" stroke="currentColor" strokeWidth="1.2" />
-              <path d="M4.75 6V4.25a2.25 2.25 0 0 1 4.5 0V6" stroke="currentColor" strokeWidth="1.2" />
+              <rect
+                x="2.5"
+                y="6"
+                width="9"
+                height="6.5"
+                rx="1.5"
+                stroke="currentColor"
+                strokeWidth="1.2"
+              />
+              <path
+                d="M4.75 6V4.25a2.25 2.25 0 0 1 4.5 0V6"
+                stroke="currentColor"
+                strokeWidth="1.2"
+              />
             </svg>
           )}
         </div>

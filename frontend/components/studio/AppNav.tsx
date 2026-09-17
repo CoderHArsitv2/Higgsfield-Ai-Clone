@@ -20,8 +20,15 @@ export function AppNav({
             <span className="font-medium">Aperture</span>
           </Link>
           <nav className="flex items-center gap-5 text-sm text-muted">
-            <Link href="/studio" className="transition-colors hover:text-fg">Studio</Link>
-            <Link href="/settings/keys" className="transition-colors hover:text-fg">Keys</Link>
+            <Link href="/studio" className="transition-colors hover:text-fg">
+              Studio
+            </Link>
+            <Link
+              href="/settings/keys"
+              className="transition-colors hover:text-fg"
+            >
+              Keys
+            </Link>
           </nav>
         </div>
 
@@ -34,13 +41,20 @@ export function AppNav({
           </span>
           {picture ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={picture} alt={name ?? "You"} className="h-7 w-7 rounded-full" />
+            <img
+              src={picture}
+              alt={name ?? "You"}
+              className="h-7 w-7 rounded-full"
+            />
           ) : (
             <span className="grid h-7 w-7 place-items-center rounded-full bg-panel-2 text-xs">
               {(name ?? "?").charAt(0).toUpperCase()}
             </span>
           )}
-          <a href="/auth/logout" className="text-sm text-dim transition-colors hover:text-fg">
+          <a
+            href="/auth/logout"
+            className="text-sm text-dim transition-colors hover:text-fg"
+          >
             Sign out
           </a>
         </div>

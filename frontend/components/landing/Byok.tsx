@@ -56,7 +56,9 @@ export function Byok() {
         <dl className="reveal-target divide-y divide-line border-t border-line">
           {POINTS.map((p) => (
             <div key={p.title} className="byok-item py-7">
-              <dt className="text-[15px] font-medium tracking-tight">{p.title}</dt>
+              <dt className="text-[15px] font-medium tracking-tight">
+                {p.title}
+              </dt>
               <dd className="mt-2 max-w-lg text-sm leading-relaxed text-muted">
                 {p.body}
               </dd>

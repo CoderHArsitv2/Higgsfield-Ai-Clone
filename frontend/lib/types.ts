@@ -60,11 +60,7 @@ export interface Asset {
 }
 
 export type GenerationStatus =
-  | "queued"
-  | "running"
-  | "succeeded"
-  | "failed"
-  | "canceled";
+  "queued" | "running" | "succeeded" | "failed" | "canceled";
 
 export interface Generation {
   id: string;

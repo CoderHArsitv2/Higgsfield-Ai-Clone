@@ -28,7 +28,11 @@ export function ParamControls({
           <label key={p.key} className="block">
             <span className="mb-1.5 block font-mono text-[10px] uppercase tracking-[0.15em] text-dim">
               {p.label}
-              {p.optional && <span className="ml-1 normal-case tracking-normal">(optional)</span>}
+              {p.optional && (
+                <span className="ml-1 normal-case tracking-normal">
+                  (optional)
+                </span>
+              )}
             </span>
 
             {p.kind === "select" && (
@@ -53,7 +57,10 @@ export function ParamControls({
                 max={p.max}
                 step={p.step ?? 1}
                 onChange={(e) =>
-                  onChange(p.key, e.target.value === "" ? "" : Number(e.target.value))
+                  onChange(
+                    p.key,
+                    e.target.value === "" ? "" : Number(e.target.value),
+                  )
                 }
                 className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm outline-none transition-colors focus:border-dim"
               />
@@ -74,7 +81,9 @@ export function ParamControls({
                 type="button"
                 onClick={() => onChange(p.key, !value)}
                 className={`h-9 w-full rounded-lg border text-sm transition-colors ${
-                  value ? "border-accent/60 bg-accent/10" : "border-line bg-panel text-muted"
+                  value
+                    ? "border-accent/60 bg-accent/10"
+                    : "border-line bg-panel text-muted"
                 }`}
               >
                 {value ? "On" : "Off"}

@@ -46,10 +46,14 @@ export function JobCard({
       </div>
 
       <div className="space-y-2.5 p-4">
-        <p className="line-clamp-2 text-[13px] leading-relaxed text-muted">{job.prompt}</p>
+        <p className="line-clamp-2 text-[13px] leading-relaxed text-muted">
+          {job.prompt}
+        </p>
 
         <div className="flex items-center justify-between font-mono text-[10px] uppercase tracking-wider">
-          <span className="text-dim">{job.model_id.split("/")[1] ?? job.model_id}</span>
+          <span className="text-dim">
+            {job.model_id.split("/")[1] ?? job.model_id}
+          </span>
           <div className="flex items-center gap-3">
             {job.used_own_key && <span className="text-iris">own key</span>}
             <span className={STATUS_COLOR[job.status]}>{job.status}</span>
@@ -95,7 +99,9 @@ function AssetView({ job }: { job: Generation }) {
   }
 
   return (
-    <div className={`grid h-full ${assets.length > 1 ? "grid-cols-2" : "grid-cols-1"} gap-px`}>
+    <div
+      className={`grid h-full ${assets.length > 1 ? "grid-cols-2" : "grid-cols-1"} gap-px`}
+    >
       {assets.map((a) => (
         // eslint-disable-next-line @next/next/no-img-element
         <img

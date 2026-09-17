@@ -23,9 +23,9 @@ export default async function KeysPage() {
       <main className="mx-auto max-w-3xl px-5 py-10">
         <h1 className="font-display text-4xl tracking-tight">Provider keys</h1>
         <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted">
-          Add a key and every model behind that provider unlocks for your account
-          only. Jobs run on your own key are billed by the provider and spend no
-          credits here.
+          Add a key and every model behind that provider unlocks for your
+          account only. Jobs run on your own key are billed by the provider and
+          spend no credits here.
         </p>
         <p className="mt-3 max-w-xl text-xs leading-relaxed text-dim">
           Keys are encrypted with AES-256-GCM before storage and are never

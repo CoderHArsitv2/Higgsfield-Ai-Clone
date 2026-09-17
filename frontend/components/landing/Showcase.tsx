@@ -1,14 +1,34 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { gsap, prefersReducedMotion } from "@/lib/gsap";
 
 const SHOTS = [
   { title: "Rain alley", model: "Kling 3.0", hue: 8, ratio: "aspect-[3/4]" },
-  { title: "Coastal drone", model: "Veo 3.1", hue: 190, ratio: "aspect-[16/9]" },
-  { title: "Studio portrait", model: "Nano Banana Pro", hue: 32, ratio: "aspect-[3/4]" },
-  { title: "Product macro", model: "FLUX 1.1 Ultra", hue: 268, ratio: "aspect-[1/1]" },
-  { title: "Night market", model: "Seedance 2.0", hue: 340, ratio: "aspect-[16/9]" },
+  {
+    title: "Coastal drone",
+    model: "Veo 3.1",
+    hue: 190,
+    ratio: "aspect-[16/9]",
+  },
+  {
+    title: "Studio portrait",
+    model: "Nano Banana Pro",
+    hue: 32,
+    ratio: "aspect-[3/4]",
+  },
+  {
+    title: "Product macro",
+    model: "FLUX 1.1 Ultra",
+    hue: 268,
+    ratio: "aspect-[1/1]",
+  },
+  {
+    title: "Night market",
+    model: "Seedance 2.0",
+    hue: 340,
+    ratio: "aspect-[16/9]",
+  },
   { title: "Desert crane", model: "Sora 2", hue: 42, ratio: "aspect-[3/4]" },
 ];
 
@@ -20,9 +40,16 @@ const SHOTS = [
 export function Showcase() {
   const root = useRef<HTMLElement>(null);
   const track = useRef<HTMLDivElement>(null);
+  // Scroll drives the track horizontally. With motion reduced that never runs,
+  // so the row has to be scrollable by hand or everything past the fold is
+  // simply unreachable.
+  const [reduced, setReduced] = useState(false);
 
   useEffect(() => {
-    if (prefersReducedMotion()) return;
+    if (prefersReducedMotion()) {
+      setReduced(true);
+      return;
+    }
 
     const ctx = gsap.context(() => {
       const el = track.current;
@@ -51,7 +78,9 @@ export function Showcase() {
   return (
     <section
       ref={root}
-      className="relative overflow-hidden border-t border-line py-24"
+      className={`relative border-t border-line py-24 ${
+        reduced ? "" : "overflow-hidden"
+      }`}
     >
       <div className="mx-auto mb-12 max-w-7xl px-6">
         <p className="mb-5 font-mono text-xs uppercase tracking-[0.2em] text-dim">
@@ -62,9 +91,16 @@ export function Showcase() {
         </h2>
       </div>
 
-      <div ref={track} className="flex gap-5 px-6 will-change-transform">
+      <div
+        ref={track}
+        className={`flex gap-5 px-6 ${
+          reduced
+            ? "snap-x snap-mandatory overflow-x-auto pb-4"
+            : "will-change-transform"
+        }`}
+      >
         {SHOTS.map((s) => (
-          <figure key={s.title} className="shrink-0">
+          <figure key={s.title} className="shrink-0 snap-start">
             <div
               className={`${s.ratio} w-[clamp(240px,34vw,420px)] overflow-hidden rounded-2xl border border-line`}
               style={{

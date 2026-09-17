@@ -44,7 +44,9 @@ export function Studio({
         const first = catalog.models.find((m) => m.enabled);
         if (first) selectModel(first);
       } catch (e) {
-        setError(e instanceof ApiError ? e.message : "Could not load the studio");
+        setError(
+          e instanceof ApiError ? e.message : "Could not load the studio",
+        );
       } finally {
         setLoading(false);
       }
@@ -93,7 +95,9 @@ export function Studio({
       onCreditsChange(res.credits_remaining);
       setPrompt("");
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Could not start the generation");
+      setError(
+        e instanceof ApiError ? e.message : "Could not start the generation",
+      );
     } finally {
       setBusy(false);
     }
@@ -120,14 +124,18 @@ export function Studio({
           <p className="font-mono text-xs text-dim">Loading models…</p>
         ) : (
           <>
-            <ModelPicker models={models} selected={selected} onSelect={selectModel} />
+            <ModelPicker
+              models={models}
+              selected={selected}
+              onSelect={selectModel}
+            />
             {lockedCount > 0 && (
               <Link
                 href="/settings/keys"
                 className="mt-6 block rounded-lg border border-line p-3 text-xs leading-relaxed text-muted transition-colors hover:border-dim"
               >
-                <span className="text-fg">{lockedCount} models locked.</span> Add your
-                own provider keys to unlock them →
+                <span className="text-fg">{lockedCount} models locked.</span>{" "}
+                Add your own provider keys to unlock them →
               </Link>
             )}
           </>

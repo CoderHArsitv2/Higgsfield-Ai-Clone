@@ -9,70 +9,94 @@ export function Hero({ modelCount }: { modelCount: number }) {
   const headline = useRef<HTMLHeadingElement>(null);
 
   useEffect(() => {
-    if (prefersReducedMotion()) {
+    const revealEverything = () => {
       gsap.set(".reveal-target", { opacity: 1, y: 0 });
+      if (headline.current) gsap.set(headline.current, { opacity: 1 });
+    };
+
+    if (prefersReducedMotion()) {
+      revealEverything();
       return;
     }
 
-    const ctx = gsap.context(() => {
-      // Split into lines then characters, and mask each line, so characters
-      // rise out from behind a clean edge rather than fading in place.
-      const split = new SplitText(headline.current, {
-        type: "lines,chars",
-        linesClass: "overflow-hidden pb-[0.12em]",
+    let ctx: gsap.Context | undefined;
+    let cancelled = false;
+
+    const build = () => {
+      ctx = gsap.context(() => {
+        // Split into lines then characters, and mask each line, so characters
+        // rise out from behind a clean edge rather than fading in place.
+        const split = new SplitText(headline.current, {
+          type: "lines,chars",
+          linesClass: "overflow-hidden pb-[0.12em]",
+        });
+
+        const tl = gsap.timeline({ defaults: { ease: "expo.out" } });
+
+        tl.set(".reveal-target", { opacity: 1 })
+          .from(split.chars, {
+            yPercent: 115,
+            duration: 1.1,
+            stagger: { each: 0.016, from: "start" },
+          })
+          .from(".hero-sub", { opacity: 0, y: 18, duration: 0.9 }, "-=0.72")
+          .from(
+            ".hero-cta",
+            { opacity: 0, y: 16, duration: 0.8, stagger: 0.08 },
+            "-=0.66",
+          )
+          .from(
+            ".hero-meta",
+            { opacity: 0, duration: 0.8, stagger: 0.06 },
+            "-=0.6",
+          );
+
+        // Slow ambient drift on the backdrop so the page is never quite static.
+        gsap.to(".hero-glow", {
+          xPercent: 12,
+          yPercent: -8,
+          scale: 1.12,
+          duration: 18,
+          ease: "sine.inOut",
+          repeat: -1,
+          yoyo: true,
+        });
+
+        // Headline drifts up as you scroll away; the glow lags behind it.
+        gsap.to(".hero-parallax", {
+          yPercent: -18,
+          ease: "none",
+          scrollTrigger: {
+            trigger: root.current,
+            start: "top top",
+            end: "bottom top",
+            scrub: 0.6,
+          },
+        });
+
+        return () => split.revert();
+      }, root);
+    };
+
+    // Splitting before the display webfont is applied measures the fallback
+    // font's line boxes, so the headline breaks in the wrong places and then
+    // reflows visibly once the real font arrives.
+    const fonts = document.fonts?.ready ?? Promise.resolve();
+    fonts
+      .catch(() => undefined)
+      .then(() => {
+        if (cancelled) return;
+        try {
+          build();
+        } catch {
+          revealEverything();
+        }
       });
 
-      const tl = gsap.timeline({ defaults: { ease: "expo.out" } });
-
-      tl.set(".reveal-target", { opacity: 1 })
-        .from(split.chars, {
-          yPercent: 115,
-          duration: 1.1,
-          stagger: { each: 0.016, from: "start" },
-        })
-        .from(
-          ".hero-sub",
-          { opacity: 0, y: 18, duration: 0.9 },
-          "-=0.72",
-        )
-        .from(
-          ".hero-cta",
-          { opacity: 0, y: 16, duration: 0.8, stagger: 0.08 },
-          "-=0.66",
-        )
-        .from(
-          ".hero-meta",
-          { opacity: 0, duration: 0.8, stagger: 0.06 },
-          "-=0.6",
-        );
-
-      // Slow ambient drift on the backdrop so the page is never quite static.
-      gsap.to(".hero-glow", {
-        xPercent: 12,
-        yPercent: -8,
-        scale: 1.12,
-        duration: 18,
-        ease: "sine.inOut",
-        repeat: -1,
-        yoyo: true,
-      });
-
-      // Headline drifts up as you scroll away; the glow lags behind it.
-      gsap.to(".hero-parallax", {
-        yPercent: -18,
-        ease: "none",
-        scrollTrigger: {
-          trigger: root.current,
-          start: "top top",
-          end: "bottom top",
-          scrub: 0.6,
-        },
-      });
-
-      return () => split.revert();
-    }, root);
-
-    return () => ctx.revert();
+    return () => {
+      cancelled = true;
+      ctx?.revert();
+    };
   }, []);
 
   return (
@@ -103,8 +127,8 @@ export function Hero({ modelCount }: { modelCount: number }) {
         </h1>
 
         <p className="hero-sub reveal-target mt-8 max-w-xl text-lg leading-relaxed text-muted">
-          Video, stills and voice from a single prompt bar. Use our keys, or bring
-          your own and pay the model providers directly.
+          Video, stills and voice from a single prompt bar. Use our keys, or
+          bring your own and pay the model providers directly.
         </p>
 
         <div className="mt-11 flex flex-wrap items-center gap-4">
@@ -114,8 +138,20 @@ export function Hero({ modelCount }: { modelCount: number }) {
               className="inline-flex items-center gap-2 rounded-full bg-accent px-7 py-3.5 text-sm font-medium text-void transition-colors hover:bg-accent-soft"
             >
               Start creating
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden>
-                <path d="M1 7h11M7.5 2.5 12 7l-4.5 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 14 14"
+                fill="none"
+                aria-hidden
+              >
+                <path
+                  d="M1 7h11M7.5 2.5 12 7l-4.5 4.5"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
               </svg>
             </a>
           </Magnetic>

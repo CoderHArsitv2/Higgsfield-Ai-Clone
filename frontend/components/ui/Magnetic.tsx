@@ -32,7 +32,12 @@ export function Magnetic({
 
   const reset = () => {
     if (ref.current) {
-      gsap.to(ref.current, { x: 0, y: 0, duration: 0.8, ease: "elastic.out(1, 0.4)" });
+      gsap.to(ref.current, {
+        x: 0,
+        y: 0,
+        duration: 0.8,
+        ease: "elastic.out(1, 0.4)",
+      });
     }
   };
 

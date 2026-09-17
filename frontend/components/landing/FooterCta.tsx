@@ -10,7 +10,9 @@ export function FooterCta() {
       <div
         aria-hidden
         className="pointer-events-none absolute -bottom-40 left-1/2 h-[60vh] w-[90vw] -translate-x-1/2 rounded-full opacity-25 blur-[130px]"
-        style={{ background: "radial-gradient(circle, #ff5a36 0%, transparent 65%)" }}
+        style={{
+          background: "radial-gradient(circle, #ff5a36 0%, transparent 65%)",
+        }}
       />
 
       <div className="relative flex select-none overflow-hidden py-10">

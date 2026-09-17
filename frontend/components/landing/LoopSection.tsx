@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { gsap, prefersReducedMotion } from "@/lib/gsap";
 
 const BEATS = [
@@ -29,9 +29,15 @@ const BEATS = [
  */
 export function LoopSection() {
   const root = useRef<HTMLElement>(null);
+  // The three panels are stacked absolutely and revealed by the scrub. With
+  // motion reduced that scrub never runs, so they would sit on top of each
+  // other and only the last one would be visible. In that mode they lay out in
+  // normal flow instead.
+  const [reduced, setReduced] = useState(false);
 
   useEffect(() => {
     if (prefersReducedMotion()) {
+      setReduced(true);
       gsap.set(".reveal-target", { opacity: 1 });
       return;
     }
@@ -53,8 +59,15 @@ export function LoopSection() {
       BEATS.forEach((_, i) => {
         const at = i * 1;
         if (i > 0) {
-          tl.to(`.beat-${i - 1}`, { opacity: 0.18, y: -14, duration: 0.4 }, at)
-            .to(`.panel-${i - 1}`, { opacity: 0, scale: 0.97, duration: 0.4 }, at);
+          tl.to(
+            `.beat-${i - 1}`,
+            { opacity: 0.18, y: -14, duration: 0.4 },
+            at,
+          ).to(
+            `.panel-${i - 1}`,
+            { opacity: 0, scale: 0.97, duration: 0.4 },
+            at,
+          );
         }
         tl.fromTo(
           `.beat-${i}`,
@@ -68,7 +81,11 @@ export function LoopSection() {
             { opacity: 1, scale: 1, duration: 0.5 },
             at,
           )
-          .to(".loop-progress", { scaleX: (i + 1) / BEATS.length, duration: 0.4 }, at);
+          .to(
+            ".loop-progress",
+            { scaleX: (i + 1) / BEATS.length, duration: 0.4 },
+            at,
+          );
       });
     }, root);
 
@@ -108,8 +125,12 @@ export function LoopSection() {
           </div>
         </div>
 
-        <div className="relative aspect-[4/3] w-full">
-          <LoopPanel index={0}>
+        <div
+          className={
+            reduced ? "w-full space-y-4" : "relative aspect-[4/3] w-full"
+          }
+        >
+          <LoopPanel index={0} reduced={reduced}>
             <div className="flex h-full flex-col justify-end gap-3 p-8">
               <div className="rounded-xl border border-line bg-void/60 p-4">
                 <p className="font-mono text-[11px] text-dim">prompt</p>
@@ -121,27 +142,31 @@ export function LoopSection() {
             </div>
           </LoopPanel>
 
-          <LoopPanel index={1}>
+          <LoopPanel index={1} reduced={reduced}>
             <div className="grid h-full grid-cols-2 content-center gap-2.5 p-8">
-              {["Kling 3.0", "Veo 3.1", "Sora 2", "Seedance 2.0"].map((m, i) => (
-                <div
-                  key={m}
-                  className={`rounded-xl border p-4 text-sm ${
-                    i === 0
-                      ? "border-accent/60 bg-accent/10 text-fg"
-                      : "border-line bg-void/40 text-dim"
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    {m}
-                    {i === 0 && <span className="h-1.5 w-1.5 rounded-full bg-accent" />}
+              {["Kling 3.0", "Veo 3.1", "Sora 2", "Seedance 2.0"].map(
+                (m, i) => (
+                  <div
+                    key={m}
+                    className={`rounded-xl border p-4 text-sm ${
+                      i === 0
+                        ? "border-accent/60 bg-accent/10 text-fg"
+                        : "border-line bg-void/40 text-dim"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      {m}
+                      {i === 0 && (
+                        <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                ),
+              )}
             </div>
           </LoopPanel>
 
-          <LoopPanel index={2}>
+          <LoopPanel index={2} reduced={reduced}>
             <div className="grid h-full grid-cols-2 gap-2 p-8">
               {[0, 1, 2, 3].map((i) => (
                 <div
@@ -160,10 +185,20 @@ export function LoopSection() {
   );
 }
 
-function LoopPanel({ index, children }: { index: number; children: React.ReactNode }) {
+function LoopPanel({
+  index,
+  reduced,
+  children,
+}: {
+  index: number;
+  reduced: boolean;
+  children: React.ReactNode;
+}) {
   return (
     <div
-      className={`panel-${index} reveal-target absolute inset-0 overflow-hidden rounded-2xl border border-line bg-panel`}
+      className={`panel-${index} reveal-target overflow-hidden rounded-2xl border border-line bg-panel ${
+        reduced ? "aspect-[4/3]" : "absolute inset-0"
+      }`}
     >
       {children}
     </div>

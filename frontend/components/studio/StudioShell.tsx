@@ -22,10 +22,7 @@ export function StudioShell({
   return (
     <>
       <AppNav credits={credits} name={name} picture={picture} />
-      <Studio
-        credits={credits}
-        onCreditsChange={setCredits}
-      />
+      <Studio credits={credits} onCreditsChange={setCredits} />
     </>
   );
 }

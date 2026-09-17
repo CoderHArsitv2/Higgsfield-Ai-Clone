@@ -52,6 +52,7 @@ jobs:
         working-directory: frontend
         run: |
           npm ci
+          npx prettier --check .
           npx tsc --noEmit
           npx eslint .
 

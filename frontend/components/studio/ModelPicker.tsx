@@ -52,15 +52,37 @@ export function ModelPicker({
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="truncate text-[13px] font-medium">{m.name}</span>
+                    <span className="truncate text-[13px] font-medium">
+                      {m.name}
+                    </span>
                     {m.enabled ? (
                       <span className="shrink-0 font-mono text-[10px] text-dim">
-                        {m.credit_cost > 0 && m.access !== "byok" ? `${m.credit_cost}c` : "own key"}
+                        {m.credit_cost > 0 && m.access !== "byok"
+                          ? `${m.credit_cost}c`
+                          : "own key"}
                       </span>
                     ) : (
-                      <svg width="11" height="11" viewBox="0 0 14 14" fill="none" className="shrink-0 text-dim">
-                        <rect x="2.5" y="6" width="9" height="6.5" rx="1.5" stroke="currentColor" strokeWidth="1.3" />
-                        <path d="M4.75 6V4.25a2.25 2.25 0 0 1 4.5 0V6" stroke="currentColor" strokeWidth="1.3" />
+                      <svg
+                        width="11"
+                        height="11"
+                        viewBox="0 0 14 14"
+                        fill="none"
+                        className="shrink-0 text-dim"
+                      >
+                        <rect
+                          x="2.5"
+                          y="6"
+                          width="9"
+                          height="6.5"
+                          rx="1.5"
+                          stroke="currentColor"
+                          strokeWidth="1.3"
+                        />
+                        <path
+                          d="M4.75 6V4.25a2.25 2.25 0 0 1 4.5 0V6"
+                          stroke="currentColor"
+                          strokeWidth="1.3"
+                        />
                       </svg>
                     )}
                   </div>
