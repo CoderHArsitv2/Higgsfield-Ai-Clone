@@ -131,14 +131,16 @@ func (w *Worker) process(ctx context.Context, gen *models.Generation) error {
 		return w.fail(ctx, gen, "model "+gen.ModelID+" is no longer available")
 	}
 
-	key, err := w.credential(ctx, gen, p.ID())
-	if err != nil {
-		log.Warn("no usable credential", "error", err)
-		return w.fail(ctx, gen, err.Error())
+	if gen.Status == models.StatusQueued {
+		return w.submit(ctx, log, gen, p, spec)
 	}
 
-	if gen.Status == models.StatusQueued {
-		return w.submit(ctx, log, gen, p, spec, key)
+	key, err := w.credential(ctx, gen, p.ID())
+	if err != nil {
+		// Already submitted upstream, so there is nothing to undo. Leave it
+		// for an instance that can poll; jobTimeout above is the backstop.
+		log.Warn("cannot poll without a credential", "error", err)
+		return nil
 	}
 	return w.poll(ctx, log, gen, p, spec, key)
 }
@@ -162,7 +164,7 @@ func (w *Worker) credential(ctx context.Context, gen *models.Generation, provide
 	return key, nil
 }
 
-func (w *Worker) submit(ctx context.Context, log *slog.Logger, gen *models.Generation, p provider.Provider, spec provider.ModelSpec, key string) error {
+func (w *Worker) submit(ctx context.Context, log *slog.Logger, gen *models.Generation, p provider.Provider, spec provider.ModelSpec) error {
 	// Claim the row in the database too, so a second instance cannot submit the
 	// same job twice and bill the user twice.
 	claimed, err := w.stores.Generations.ClaimForSubmit(ctx, gen.ID)
@@ -173,6 +175,26 @@ func (w *Worker) submit(ctx context.Context, log *slog.Logger, gen *models.Gener
 		return nil // another worker got there first
 	}
 	gen.Status = models.StatusRunning
+
+	// Resolved after claiming, not before, so a missing credential costs an
+	// attempt and can be retried.
+	//
+	// Whether a platform key exists is a property of the instance, not of the
+	// job: every process pointed at this database polls the same queue, so a
+	// stale or differently configured one would otherwise fail jobs that a
+	// correctly configured instance could have run. Requeueing lets that
+	// instance pick it up, and the attempt count bounds the loop when no
+	// instance has the key.
+	key, err := w.credential(ctx, gen, p.ID())
+	if err != nil {
+		if gen.Attempts+1 < maxAttempts {
+			log.Warn("no credential on this instance, requeueing",
+				"attempt", gen.Attempts+1, "of", maxAttempts, "error", err)
+			return w.stores.Generations.Requeue(ctx, gen.ID)
+		}
+		log.Error("no credential after every attempt", "error", err)
+		return w.fail(ctx, gen, err.Error())
+	}
 
 	var params map[string]any
 	_ = json.Unmarshal(gen.Params, &params)

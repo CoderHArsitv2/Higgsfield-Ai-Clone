@@ -272,3 +272,51 @@ func TestUpsertDoesNotResetCredits(t *testing.T) {
 		t.Fatalf("re-login changed the balance: want 7, got %d", again.Credits)
 	}
 }
+
+// A job must not be failed by an instance that simply lacks the provider key.
+//
+// Regression test. Every process pointed at this database polls the same queue,
+// so a stale or differently configured instance -- a laptop still running an old
+// build alongside production is the obvious case -- was picking up jobs, finding
+// no platform key in its own registry, and failing them permanently. The job was
+// perfectly runnable; the wrong process reached it first.
+func TestMissingCredentialRequeuesRatherThanFailing(t *testing.T) {
+	db := testDB(t)
+	user := newUser(t, db, 100)
+	_, worker := harness(t, db) // registry has fal registered but no FAL_KEY
+	ctx := context.Background()
+
+	gen := models.Generation{
+		UserID: user.ID, ProviderID: "fal", ModelID: "fal/kling-3.0",
+		Modality: "video", Prompt: "a job this instance cannot run",
+		Status: models.StatusQueued,
+	}
+	if err := db.Create(&gen).Error; err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { db.Unscoped().Delete(&gen) })
+
+	// First pass: claimed, found no credential, put back.
+	worker.tick(ctx)
+
+	var after models.Generation
+	db.First(&after, "id = ?", gen.ID)
+	if after.Status != models.StatusQueued {
+		t.Fatalf("expected the job back in the queue, got %q (%s)", after.Status, after.Error)
+	}
+	if after.Attempts != 1 {
+		t.Fatalf("expected the attempt to be counted, got %d", after.Attempts)
+	}
+
+	// It must not retry forever either: once the attempts are spent it fails.
+	for i := 0; i < maxAttempts+1; i++ {
+		worker.tick(ctx)
+	}
+	db.First(&after, "id = ?", gen.ID)
+	if after.Status != models.StatusFailed {
+		t.Fatalf("expected failure after %d attempts, got %q", maxAttempts, after.Status)
+	}
+	if after.Attempts < maxAttempts {
+		t.Fatalf("failed before spending its attempts: %d", after.Attempts)
+	}
+}
