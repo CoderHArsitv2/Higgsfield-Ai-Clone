@@ -1,0 +1,11 @@
+# NOTE: .agent-logs/ is deliberately NOT ignored. It is part of the submission
+# and ships with the repo. Do not add it here.
+
+node_modules/
+dist/
+build/
+.DS_Store
+*.log
+!.agent-logs/*
+.env
+.env.local
