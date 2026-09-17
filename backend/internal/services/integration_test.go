@@ -320,3 +320,48 @@ func TestMissingCredentialRequeuesRatherThanFailing(t *testing.T) {
 		t.Fatalf("failed before spending its attempts: %d", after.Attempts)
 	}
 }
+
+// The balance alone cannot tell a user who never generated from one who spent
+// and was refunded in equal measure, so the counters have to move with it --
+// and in the same statement, or a crash between the two writes leaves them
+// disagreeing forever.
+func TestCreditCountersTrackSpendAndRefund(t *testing.T) {
+	db := testDB(t)
+	user := newUser(t, db, 100)
+	store := models.New(db).Users
+	ctx := context.Background()
+
+	paid, err := store.Spend(ctx, user.ID, 20)
+	if err != nil || !paid {
+		t.Fatalf("spend: paid=%v err=%v", paid, err)
+	}
+
+	after, _ := store.ByID(ctx, user.ID)
+	if after.Credits != 80 || after.CreditsSpent != 20 || after.CreditsRefunded != 0 {
+		t.Fatalf("after spend: %d credits, %d spent, %d refunded",
+			after.Credits, after.CreditsSpent, after.CreditsRefunded)
+	}
+
+	if err := store.Refund(ctx, user.ID, 20); err != nil {
+		t.Fatal(err)
+	}
+	after, _ = store.ByID(ctx, user.ID)
+	if after.Credits != 100 || after.CreditsSpent != 20 || after.CreditsRefunded != 20 {
+		t.Fatalf("after refund: %d credits, %d spent, %d refunded",
+			after.Credits, after.CreditsSpent, after.CreditsRefunded)
+	}
+
+	// A spend the balance cannot cover must move nothing at all.
+	paid, err = store.Spend(ctx, user.ID, 500)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if paid {
+		t.Fatal("overdrew the account")
+	}
+	after, _ = store.ByID(ctx, user.ID)
+	if after.Credits != 100 || after.CreditsSpent != 20 {
+		t.Fatalf("a refused spend moved the counters: %d credits, %d spent",
+			after.Credits, after.CreditsSpent)
+	}
+}

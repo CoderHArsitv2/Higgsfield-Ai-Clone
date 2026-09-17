@@ -83,6 +83,9 @@ export interface User {
   name: string;
   picture: string;
   credits: number;
+  /** Cumulative, not a balance: what has been spent and given back over time. */
+  credits_spent: number;
+  credits_refunded: number;
 }
 
 export interface StoredKey {

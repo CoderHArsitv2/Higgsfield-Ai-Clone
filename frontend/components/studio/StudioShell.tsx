@@ -10,10 +10,14 @@ import { Studio } from "./Studio";
  */
 export function StudioShell({
   initialCredits,
+  spent,
+  refunded,
   name,
   picture,
 }: {
   initialCredits: number;
+  spent?: number;
+  refunded?: number;
   name?: string;
   picture?: string;
 }) {
@@ -21,7 +25,13 @@ export function StudioShell({
 
   return (
     <>
-      <AppNav credits={credits} name={name} picture={picture} />
+      <AppNav
+        credits={credits}
+        spent={spent}
+        refunded={refunded}
+        name={name}
+        picture={picture}
+      />
       <Studio credits={credits} onCreditsChange={setCredits} />
     </>
   );

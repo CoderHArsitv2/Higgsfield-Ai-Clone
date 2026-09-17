@@ -16,6 +16,8 @@ export default async function StudioPage() {
   return (
     <StudioShell
       initialCredits={me?.user.credits ?? 0}
+      spent={me?.user.credits_spent}
+      refunded={me?.user.credits_refunded}
       name={me?.user.name || session.user.name || session.user.email}
       picture={me?.user.picture || session.user.picture}
     />

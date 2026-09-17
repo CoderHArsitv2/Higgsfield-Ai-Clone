@@ -16,12 +16,17 @@ import (
 // there is no password column here by design.
 type User struct {
 	Base
-	Auth0Subject string     `gorm:"uniqueIndex;not null" json:"-"`
-	Email        string     `gorm:"index" json:"email"`
-	Name         string     `json:"name"`
-	Picture      string     `json:"picture"`
-	Credits      int        `gorm:"not null;default:100" json:"credits"`
-	LastSeenAt   *time.Time `json:"last_seen_at,omitempty"`
+	Auth0Subject string `gorm:"uniqueIndex;not null" json:"-"`
+	Email        string `gorm:"index" json:"email"`
+	Name         string `json:"name"`
+	Picture      string `json:"picture"`
+	Credits      int    `gorm:"not null;default:100" json:"credits"`
+	// Cumulative counters, so the balance has a history behind it: a balance
+	// alone cannot distinguish a user who has never generated from one who has
+	// spent and been refunded in equal measure.
+	CreditsSpent    int        `gorm:"not null;default:0" json:"credits_spent"`
+	CreditsRefunded int        `gorm:"not null;default:0" json:"credits_refunded"`
+	LastSeenAt      *time.Time `json:"last_seen_at,omitempty"`
 
 	APIKeys     []UserAPIKey `gorm:"constraint:OnDelete:CASCADE" json:"-"`
 	Generations []Generation `gorm:"constraint:OnDelete:CASCADE" json:"-"`
@@ -72,9 +77,14 @@ func (s *userStore) Spend(ctx context.Context, id uuid.UUID, amount int) (bool, 
 	if amount <= 0 {
 		return true, nil
 	}
+	// Balance and counter move in one statement, so they can never disagree
+	// and two concurrent generations cannot both pass the check and overdraw.
 	res := s.db.WithContext(ctx).Model(&User{}).
 		Where("id = ? AND credits >= ?", id, amount).
-		UpdateColumn("credits", gorm.Expr("credits - ?", amount))
+		UpdateColumns(map[string]any{
+			"credits":       gorm.Expr("credits - ?", amount),
+			"credits_spent": gorm.Expr("credits_spent + ?", amount),
+		})
 	if res.Error != nil {
 		return false, res.Error
 	}
@@ -86,7 +96,10 @@ func (s *userStore) Refund(ctx context.Context, id uuid.UUID, amount int) error 
 		return nil
 	}
 	return s.db.WithContext(ctx).Model(&User{}).Where("id = ?", id).
-		UpdateColumn("credits", gorm.Expr("credits + ?", amount)).Error
+		UpdateColumns(map[string]any{
+			"credits":          gorm.Expr("credits + ?", amount),
+			"credits_refunded": gorm.Expr("credits_refunded + ?", amount),
+		}).Error
 }
 
 func IsNotFound(err error) bool { return errors.Is(err, gorm.ErrRecordNotFound) }

@@ -2,10 +2,14 @@ import Link from "next/link";
 
 export function AppNav({
   credits,
+  spent,
+  refunded,
   name,
   picture,
 }: {
   credits: number;
+  spent?: number;
+  refunded?: number;
   name?: string;
   picture?: string;
 }) {
@@ -43,7 +47,13 @@ export function AppNav({
         <div className="flex items-center gap-4">
           <span
             className="rounded-full border border-line px-3 py-1 font-mono text-[11px] text-muted"
-            title="Credits are only spent on models running on platform keys"
+            title={[
+              "Credits are only spent on models running on platform keys.",
+              spent !== undefined ? `${spent} spent in total` : null,
+              refunded ? `${refunded} refunded from failed jobs` : null,
+            ]
+              .filter(Boolean)
+              .join("\n")}
           >
             {credits} credits
           </span>
