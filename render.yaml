@@ -1,0 +1,46 @@
+# Render blueprint. Production only -- there is no staging service by design.
+services:
+  - type: web
+    name: aperture-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    region: oregon
+    plan: starter
+    healthCheckPath: /health
+    autoDeploy: false # GitHub Actions owns deploys so they are gated on tests
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: aperture-db
+          property: connectionString
+      # Set these in the Render dashboard; they are secrets.
+      - key: AUTH0_DOMAIN
+        sync: false
+      - key: AUTH0_AUDIENCE
+        sync: false
+      - key: ENCRYPTION_KEY
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+      - key: PUBLIC_BASE_URL
+        sync: false
+      # Provider credentials. Each one unlocks its models for every user.
+      - key: FAL_KEY
+        sync: false
+      - key: REPLICATE_API_TOKEN
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: ELEVENLABS_API_KEY
+        sync: false
+
+databases:
+  - name: aperture-db
+    databaseName: aperture
+    plan: basic-256mb
+    region: oregon
