@@ -177,3 +177,19 @@ is left as a gap.
 **e. An orphaned `PROMPT` with no `RESPONSE` is expected, not a bug.**
 `Stop` does not fire when a turn is interrupted. `4d79eab0` contains a `PROMPT` with no
 matching `RESPONSE` for exactly that reason. Left in place.
+
+**f. Prompts captured in the IDE carry an `<ide_opened_file>` prefix.**
+The VS Code extension prepends editor context (e.g. which file the user just opened) to
+the prompt before it reaches the `UserPromptSubmit` hook. So a captured prompt is
+verbatim what was *submitted*, which is not always identical to what was *typed*. I
+considered stripping the tag and decided not to: the brief says no cleanup, and
+stripping it would be me deciding what counts as part of the prompt. It is left in, and
+flagged here so it is not mistaken for noise. Headless (`claude -p`) prompts have no
+such prefix, which is why the canaries are clean.
+
+**g. One entry in this session's own log records the bug being fixed.**
+`.agent-logs/2026-09-17_11-25-38_4d79eab0-*.md` has `RESPONSE num=1` reading
+`[no final text response - turn ended on a tool call]` — that turn did have a response.
+It was written by the pre-fix hook, minutes before the rewrite landed. It is wrong, and
+it stays. The fix is visible in the same file: later entries in that session capture
+correctly.
