@@ -3,9 +3,12 @@ package config
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/joho/godotenv"
 )
 
 // Config is resolved once at boot. Provider credentials are deliberately kept
@@ -25,6 +28,8 @@ type Config struct {
 }
 
 func Load() (*Config, error) {
+	loadDotenv()
+
 	c := &Config{
 		Env:           env("APP_ENV", "development"),
 		Port:          env("PORT", "8080"),
@@ -62,6 +67,34 @@ func Load() (*Config, error) {
 	}
 
 	return c, c.validate()
+}
+
+// loadDotenv walks up from the working directory looking for a .env file.
+//
+// Searching upward rather than using a fixed relative path means it works from
+// wherever the process was started -- `go run ./cmd/api` from backend/, `go run
+// main.go` from backend/cmd/api/, or the compiled binary from anywhere.
+//
+// godotenv does not overwrite variables that are already set, so a real
+// deployment (Render, CI) always wins over a file that happens to be present.
+// A missing .env is not an error: production has none.
+func loadDotenv() {
+	dir, err := os.Getwd()
+	if err != nil {
+		return
+	}
+	for i := 0; i < 6; i++ {
+		candidate := filepath.Join(dir, ".env")
+		if _, err := os.Stat(candidate); err == nil {
+			_ = godotenv.Load(candidate)
+			return
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			return // reached the filesystem root
+		}
+		dir = parent
+	}
 }
 
 func (c *Config) validate() error {

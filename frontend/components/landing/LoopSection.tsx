@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { gsap, prefersReducedMotion } from "@/lib/gsap";
+import { gsap, ScrollTrigger, prefersReducedMotion } from "@/lib/gsap";
 
 const BEATS = [
   {
@@ -21,18 +21,21 @@ const BEATS = [
   },
 ];
 
+const DIM = 0.32;
+
 /**
- * The centrepiece scroll moment: the section pins and the three beats are
- * scrubbed by scroll position rather than autoplaying, so the viewer controls
- * the pace. This replaces five competing announcement blocks on the original
- * site with one idea told in sequence.
+ * The centrepiece scroll moment: the section pins and the three beats advance
+ * with scroll position, so the viewer controls the pace.
+ *
+ * Driven by an explicit active index rather than a scrubbed `fromTo` timeline.
+ * A scrub leaves every element in its "from" state whenever progress is 0 --
+ * which is true before the trigger starts and after scrolling back past it --
+ * so all three beats sat dimmed at once and the wrong panel showed through.
+ * An index always has exactly one valid resting state, at any scroll position
+ * and on a deep link straight into the section.
  */
 export function LoopSection() {
   const root = useRef<HTMLElement>(null);
-  // The three panels are stacked absolutely and revealed by the scrub. With
-  // motion reduced that scrub never runs, so they would sit on top of each
-  // other and only the last one would be visible. In that mode they lay out in
-  // normal flow instead.
   const [reduced, setReduced] = useState(false);
 
   useEffect(() => {
@@ -45,47 +48,57 @@ export function LoopSection() {
     const ctx = gsap.context(() => {
       gsap.set(".reveal-target", { opacity: 1 });
 
-      const tl = gsap.timeline({
-        scrollTrigger: {
-          trigger: root.current,
-          start: "top top",
-          end: "+=2600",
-          pin: true,
-          scrub: 0.8,
-          anticipatePin: 1,
-        },
-      });
+      // Resting state: beat one is already active before any scrolling.
+      gsap.set(".beat-0", { opacity: 1 });
+      gsap.set([".beat-1", ".beat-2"], { opacity: DIM });
+      gsap.set(".panel-0", { opacity: 1, scale: 1 });
+      gsap.set([".panel-1", ".panel-2"], { opacity: 0, scale: 0.97 });
+      gsap.set(".loop-progress", { scaleX: 1 / BEATS.length });
 
-      BEATS.forEach((_, i) => {
-        const at = i * 1;
-        if (i > 0) {
-          tl.to(
-            `.beat-${i - 1}`,
-            { opacity: 0.18, y: -14, duration: 0.4 },
-            at,
-          ).to(
-            `.panel-${i - 1}`,
-            { opacity: 0, scale: 0.97, duration: 0.4 },
-            at,
+      let active = 0;
+      const show = (i: number) => {
+        if (i === active) return;
+        active = i;
+        BEATS.forEach((_, j) => {
+          gsap.to(`.beat-${j}`, {
+            opacity: j === i ? 1 : DIM,
+            duration: 0.45,
+            ease: "power2.out",
+            overwrite: "auto",
+          });
+          gsap.to(`.panel-${j}`, {
+            opacity: j === i ? 1 : 0,
+            scale: j === i ? 1 : 0.97,
+            duration: 0.5,
+            ease: "power2.out",
+            overwrite: "auto",
+          });
+        });
+        gsap.to(".loop-progress", {
+          scaleX: (i + 1) / BEATS.length,
+          duration: 0.4,
+          ease: "power2.out",
+          overwrite: "auto",
+        });
+      };
+
+      ScrollTrigger.create({
+        trigger: root.current,
+        start: "top top",
+        end: "+=2100",
+        pin: true,
+        anticipatePin: 1,
+        invalidateOnRefresh: true,
+        onUpdate: (self) => {
+          const i = Math.min(
+            BEATS.length - 1,
+            Math.floor(self.progress * BEATS.length),
           );
-        }
-        tl.fromTo(
-          `.beat-${i}`,
-          { opacity: 0.18, y: 14 },
-          { opacity: 1, y: 0, duration: 0.4 },
-          at,
-        )
-          .fromTo(
-            `.panel-${i}`,
-            { opacity: 0, scale: 0.97 },
-            { opacity: 1, scale: 1, duration: 0.5 },
-            at,
-          )
-          .to(
-            ".loop-progress",
-            { scaleX: (i + 1) / BEATS.length, duration: 0.4 },
-            at,
-          );
+          show(i);
+        },
+        // Scrolling back out of the section must restore the resting state,
+        // not leave whichever beat happened to be last.
+        onLeaveBack: () => show(0),
       });
     }, root);
 
@@ -121,7 +134,7 @@ export function LoopSection() {
           </div>
 
           <div className="mt-12 h-px w-full max-w-md bg-line">
-            <div className="loop-progress h-px origin-left scale-x-0 bg-accent" />
+            <div className="loop-progress h-px origin-left bg-accent" />
           </div>
         </div>
 
@@ -168,15 +181,20 @@ export function LoopSection() {
 
           <LoopPanel index={2} reduced={reduced}>
             <div className="grid h-full grid-cols-2 gap-2 p-8">
-              {[0, 1, 2, 3].map((i) => (
-                <div
-                  key={i}
-                  className="rounded-xl border border-line"
-                  style={{
-                    background: `linear-gradient(${135 + i * 40}deg, rgba(255,90,54,${0.28 - i * 0.05}), rgba(138,124,255,${0.2 + i * 0.04}))`,
-                  }}
-                />
-              ))}
+              {["rain-city", "neon-street", "coastline", "desert"].map(
+                (clip) => (
+                  <video
+                    key={clip}
+                    src={`/showcase/${clip}.mp4`}
+                    className="h-full w-full rounded-xl border border-line object-cover"
+                    muted
+                    loop
+                    playsInline
+                    autoPlay
+                    preload="none"
+                  />
+                ),
+              )}
             </div>
           </LoopPanel>
         </div>

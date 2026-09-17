@@ -2,10 +2,41 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { scrollToSection } from "@/lib/gsap";
+
+const NAV_LINKS: [string, string][] = [
+  ["#loop", "How it works"],
+  ["#models", "Models"],
+  ["#keys", "Your keys"],
+];
 
 export function Nav({ signedIn }: { signedIn: boolean }) {
   const [solid, setSolid] = useState(false);
   const raf = useRef(0);
+
+  // A page loaded with a hash is positioned by the browser before ScrollTrigger
+  // has created its pin spacers, so it lands part-way into a pinned section.
+  // Re-resolve the target once layout has settled.
+  useEffect(() => {
+    let t = 0;
+    const settle = (smooth: boolean) => {
+      const hash = window.location.hash;
+      if (!hash) return;
+      window.clearTimeout(t);
+      t = window.setTimeout(() => scrollToSection(hash, smooth), 450);
+    };
+
+    settle(false);
+    // Back/forward between sections only changes the hash, so the effect above
+    // never re-runs. Without this the browser drops the viewer at the raw
+    // offset, part-way into a pinned section.
+    const onHashChange = () => settle(true);
+    window.addEventListener("hashchange", onHashChange);
+    return () => {
+      window.clearTimeout(t);
+      window.removeEventListener("hashchange", onHashChange);
+    };
+  }, []);
 
   useEffect(() => {
     const onScroll = () => {
@@ -39,15 +70,19 @@ export function Nav({ signedIn }: { signedIn: boolean }) {
         </Link>
 
         <div className="hidden items-center gap-8 text-sm text-muted md:flex">
-          <a href="#loop" className="transition-colors hover:text-fg">
-            How it works
-          </a>
-          <a href="#models" className="transition-colors hover:text-fg">
-            Models
-          </a>
-          <a href="#keys" className="transition-colors hover:text-fg">
-            Your keys
-          </a>
+          {NAV_LINKS.map(([hash, label]) => (
+            <a
+              key={hash}
+              href={hash}
+              onClick={(e) => {
+                e.preventDefault();
+                scrollToSection(hash);
+              }}
+              className="transition-colors hover:text-fg"
+            >
+              {label}
+            </a>
+          ))}
         </div>
 
         <div className="flex items-center gap-3">

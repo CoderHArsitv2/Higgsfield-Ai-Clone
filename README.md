@@ -211,6 +211,13 @@ the Vercel domain and `PUBLIC_BASE_URL` to the Render domain.
 
 ---
 
+## Showcase footage
+
+The clips in `frontend/public/showcase/` are placeholder stock footage from
+Pexels, transcoded to ~200-450KB silent loops (1.9MB total). Swap in your own by
+keeping the same filenames — see
+[`CREDITS.md`](frontend/public/showcase/CREDITS.md).
+
 ## Agent logs
 
 `.agent-logs/` contains the full prompt-and-response record of this build,

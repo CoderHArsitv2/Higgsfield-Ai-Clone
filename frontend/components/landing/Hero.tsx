@@ -1,8 +1,14 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { gsap, SplitText, prefersReducedMotion } from "@/lib/gsap";
+import {
+  gsap,
+  SplitText,
+  prefersReducedMotion,
+  scrollToSection,
+} from "@/lib/gsap";
 import { Magnetic } from "@/components/ui/Magnetic";
+import { HeroMedia } from "./HeroMedia";
 
 export function Hero({ modelCount }: { modelCount: number }) {
   const root = useRef<HTMLElement>(null);
@@ -64,7 +70,7 @@ export function Hero({ modelCount }: { modelCount: number }) {
 
         // Headline drifts up as you scroll away; the glow lags behind it.
         gsap.to(".hero-parallax", {
-          yPercent: -18,
+          yPercent: -9,
           ease: "none",
           scrollTrigger: {
             trigger: root.current,
@@ -113,60 +119,68 @@ export function Hero({ modelCount }: { modelCount: number }) {
         }}
       />
 
-      <div className="hero-parallax relative mx-auto w-full max-w-6xl">
-        <p className="hero-meta reveal-target mb-8 flex items-center gap-3 font-mono text-xs uppercase tracking-[0.2em] text-dim">
-          <span className="inline-block h-px w-8 bg-dim" />
-          {modelCount} models · one workspace
-        </p>
+      <div className="relative mx-auto grid w-full max-w-7xl items-center gap-12 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:gap-16">
+        <div className="hero-parallax">
+          <p className="hero-meta reveal-target mb-8 flex items-center gap-3 font-mono text-xs uppercase tracking-[0.2em] text-dim">
+            <span className="inline-block h-px w-8 bg-dim" />
+            {modelCount} models · one workspace
+          </p>
 
-        <h1
-          ref={headline}
-          className="max-w-[16ch] font-display text-[clamp(3rem,10vw,8.5rem)] font-normal leading-[0.92] tracking-[-0.02em]"
-        >
-          Every model. <em className="italic text-accent">One</em> studio.
-        </h1>
-
-        <p className="hero-sub reveal-target mt-8 max-w-xl text-lg leading-relaxed text-muted">
-          Video, stills and voice from a single prompt bar. Use our keys, or
-          bring your own and pay the model providers directly.
-        </p>
-
-        <div className="mt-11 flex flex-wrap items-center gap-4">
-          <Magnetic className="hero-cta reveal-target">
-            <a
-              href="/auth/login"
-              className="inline-flex items-center gap-2 rounded-full bg-accent px-7 py-3.5 text-sm font-medium text-void transition-colors hover:bg-accent-soft"
-            >
-              Start creating
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 14 14"
-                fill="none"
-                aria-hidden
-              >
-                <path
-                  d="M1 7h11M7.5 2.5 12 7l-4.5 4.5"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </a>
-          </Magnetic>
-
-          <a
-            href="#loop"
-            className="hero-cta reveal-target rounded-full border border-line px-7 py-3.5 text-sm text-muted transition-colors hover:border-dim hover:text-fg"
+          <h1
+            ref={headline}
+            className="max-w-[16ch] font-display text-[clamp(3rem,10vw,8.5rem)] font-normal leading-[0.92] tracking-[-0.02em]"
           >
-            See how it works
-          </a>
+            Every model. <em className="italic text-accent">One</em> studio.
+          </h1>
+
+          <p className="hero-sub reveal-target mt-8 max-w-xl text-lg leading-relaxed text-muted">
+            Video, stills and voice from a single prompt bar. Use our keys, or
+            bring your own and pay the model providers directly.
+          </p>
+
+          <div className="mt-11 flex flex-wrap items-center gap-4">
+            <Magnetic className="hero-cta reveal-target">
+              <a
+                href="/auth/login"
+                className="inline-flex items-center gap-2 rounded-full bg-accent px-7 py-3.5 text-sm font-medium text-void transition-colors hover:bg-accent-soft"
+              >
+                Start creating
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 14 14"
+                  fill="none"
+                  aria-hidden
+                >
+                  <path
+                    d="M1 7h11M7.5 2.5 12 7l-4.5 4.5"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </a>
+            </Magnetic>
+
+            <a
+              href="#loop"
+              onClick={(e) => {
+                e.preventDefault();
+                scrollToSection("#loop");
+              }}
+              className="hero-cta reveal-target rounded-full border border-line px-7 py-3.5 text-sm text-muted transition-colors hover:border-dim hover:text-fg"
+            >
+              See how it works
+            </a>
+          </div>
+
+          <p className="hero-meta reveal-target mt-14 font-mono text-xs text-dim">
+            No card required · Sandbox models run free
+          </p>
         </div>
 
-        <p className="hero-meta reveal-target mt-14 font-mono text-xs text-dim">
-          No card required · Sandbox models run free
-        </p>
+        <HeroMedia />
       </div>
     </section>
   );

@@ -4,32 +4,42 @@ import { useEffect, useRef, useState } from "react";
 import { gsap, prefersReducedMotion } from "@/lib/gsap";
 
 const SHOTS = [
-  { title: "Rain alley", model: "Kling 3.0", hue: 8, ratio: "aspect-[3/4]" },
   {
+    clip: "rain-city",
+    title: "Rain alley",
+    model: "Kling 3.0",
+    ratio: "aspect-[9/16]",
+  },
+  {
+    clip: "coastline",
     title: "Coastal drone",
     model: "Veo 3.1",
-    hue: 190,
-    ratio: "aspect-[16/9]",
+    ratio: "aspect-video",
   },
   {
+    clip: "portrait",
     title: "Studio portrait",
     model: "Nano Banana Pro",
-    hue: 32,
-    ratio: "aspect-[3/4]",
+    ratio: "aspect-[9/16]",
   },
   {
+    clip: "studio",
     title: "Product macro",
     model: "FLUX 1.1 Ultra",
-    hue: 268,
-    ratio: "aspect-[1/1]",
+    ratio: "aspect-video",
   },
   {
+    clip: "neon-street",
     title: "Night market",
     model: "Seedance 2.0",
-    hue: 340,
-    ratio: "aspect-[16/9]",
+    ratio: "aspect-[9/16]",
   },
-  { title: "Desert crane", model: "Sora 2", hue: 42, ratio: "aspect-[3/4]" },
+  {
+    clip: "desert",
+    title: "Desert crane",
+    model: "Sora 2",
+    ratio: "aspect-video",
+  },
 ];
 
 /**
@@ -55,7 +65,8 @@ export function Showcase() {
       const el = track.current;
       if (!el) return;
 
-      const distance = () => el.scrollWidth - window.innerWidth + 96;
+      const distance = () =>
+        Math.max(0, el.scrollWidth - window.innerWidth + 96);
 
       gsap.to(el, {
         x: () => -distance(),
@@ -100,13 +111,21 @@ export function Showcase() {
         }`}
       >
         {SHOTS.map((s) => (
-          <figure key={s.title} className="shrink-0 snap-start">
+          <figure key={s.clip} className="shrink-0 snap-start">
             <div
-              className={`${s.ratio} w-[clamp(240px,34vw,420px)] overflow-hidden rounded-2xl border border-line`}
-              style={{
-                background: `linear-gradient(150deg, hsl(${s.hue} 75% 52% / 0.35), hsl(${s.hue + 45} 70% 45% / 0.12) 60%, #101014 100%)`,
-              }}
-            />
+              className={`${s.ratio} w-[clamp(240px,30vw,380px)] overflow-hidden rounded-2xl border border-line bg-panel`}
+            >
+              <video
+                src={`/showcase/${s.clip}.mp4`}
+                poster={`/showcase/${s.clip}.jpg`}
+                className="h-full w-full object-cover"
+                autoPlay
+                muted
+                loop
+                playsInline
+                preload="none"
+              />
+            </div>
             <figcaption className="mt-3 flex items-center justify-between font-mono text-[11px] uppercase tracking-wider">
               <span className="text-muted">{s.title}</span>
               <span className="text-dim">{s.model}</span>
