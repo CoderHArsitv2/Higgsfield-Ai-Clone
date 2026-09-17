@@ -58,10 +58,35 @@ func run(log *slog.Logger) error {
 		return err
 	}
 
+	// Object storage when a bucket is configured, local disk otherwise. Only
+	// providers that hand back raw bytes rather than a URL -- OpenAI images,
+	// Gemini, ElevenLabs -- ever touch this.
 	mediaDir := envOr("MEDIA_DIR", "./.media")
-	store, err := storage.NewLocal(mediaDir, envOr("PUBLIC_BASE_URL", "http://localhost:"+cfg.Port))
-	if err != nil {
-		return err
+	var store storage.Storage
+	if cfg.Storage.Enabled() {
+		store, err = storage.NewS3(storage.S3Config{
+			Endpoint:      cfg.Storage.Endpoint,
+			Region:        cfg.Storage.Region,
+			Bucket:        cfg.Storage.Bucket,
+			AccessKey:     cfg.Storage.AccessKey,
+			SecretKey:     cfg.Storage.SecretKey,
+			PublicBaseURL: cfg.Storage.PublicBaseURL,
+			Prefix:        cfg.Storage.Prefix,
+		})
+		if err != nil {
+			return err
+		}
+		log.Info("media storage: object store",
+			"bucket", cfg.Storage.Bucket, "endpoint", cfg.Storage.Endpoint,
+			"region", cfg.Storage.Region)
+	} else {
+		store, err = storage.NewLocal(mediaDir,
+			envOr("PUBLIC_BASE_URL", "http://localhost:"+cfg.Port))
+		if err != nil {
+			return err
+		}
+		log.Warn("media storage: local disk — generated files are lost on restart",
+			"dir", mediaDir, "hint", "set STORAGE_BUCKET to use an object store")
 	}
 
 	// Registration order is display order in the UI. Sandbox first so a new

@@ -40,11 +40,23 @@ jobs:
 
       - run: go vet ./...
 
+      - name: Start MinIO
+        # An S3-compatible server, so the object storage driver is exercised
+        # against something that really signs and validates requests.
+        run: |
+          docker run -d --name minio -p 9100:9000 \
+            -e MINIO_ROOT_USER=testkey -e MINIO_ROOT_PASSWORD=testsecret123 \
+            quay.io/minio/minio:latest server /data
+          for i in $(seq 1 20); do
+            curl -sf http://localhost:9100/minio/health/live && break || sleep 2
+          done
+
       - name: Test
-        # The integration suite only runs when this is set, so it exercises the
-        # real database here and stays skippable on a laptop.
+        # The integration suites only run when these are set, so they exercise
+        # real infrastructure here and stay skippable on a laptop.
         env:
           TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/higgsfield_test?sslmode=disable
+          TEST_S3_ENDPOINT: http://localhost:9100
         run: go test -race ./...
 
       - run: go build ./...

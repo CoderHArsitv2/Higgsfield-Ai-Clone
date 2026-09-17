@@ -66,6 +66,7 @@ build, so even an untagged deploy is traceable to a commit.
    | `CORS_ORIGINS` | your Vercel URL |
    | `PUBLIC_BASE_URL` | your Render URL |
    | `FAL_KEY` etc. | any provider keys you want platform-wide |
+   | object storage | see 2b below |
 
    > **`ENCRYPTION_KEY` is not rotatable in place.** It encrypts users' stored
    > provider keys. Change it and every stored key becomes undecryptable and has
@@ -73,6 +74,61 @@ build, so even an untagged deploy is traceable to a commit.
 
 6. Deploy once by hand so the service exists, then copy the **service id**
    (`srv-…`) from the URL.
+
+### 2b. Object storage
+
+Only providers that return raw bytes rather than a URL touch this — OpenAI
+images, Gemini, ElevenLabs. fal and Replicate return hosted URLs, so a sandbox
+or fal-only setup never needs it.
+
+Without a bucket, those files are written to the container filesystem, which
+Render wipes on every deploy and restart. Working URLs in the gallery become
+404s at the next deploy.
+
+Any S3-compatible store works. Using **Neon Object Storage**, which sits
+alongside the database:
+
+1. Neon console → your project → **Storage** → create a bucket. Choose
+   **public_read**: the object URL is stored on the asset row and served
+   straight to the browser, so it has to keep working without a signature.
+2. Create a credential scoped to storage:
+
+   ```bash
+   curl -X POST "https://console.neon.tech/api/v2/projects/$PROJECT_ID/branches/$BRANCH_ID/credentials" \
+     -H "Authorization: Bearer $NEON_API_KEY" \
+     -H "Content-Type: application/json" \
+     -d '{"scopes":["storage:read","storage:write"],"principal_type":"user"}'
+   ```
+
+   `token_id` (`nak_live_…`) is the access key id, `s3_secret_access_key`
+   (`nsk_live_…`) is the secret.
+
+3. Add to Render:
+
+   | Key | Value |
+   | --- | --- |
+   | `STORAGE_BUCKET` | your bucket name |
+   | `AWS_ENDPOINT_URL_S3` | `https://br-<branch>.storage.c-2.<region>.aws.neon.tech` |
+   | `AWS_REGION` | `us-east-2` — the AWS region, not Neon's `aws-us-east-2` |
+   | `AWS_ACCESS_KEY_ID` | `nak_live_…` |
+   | `AWS_SECRET_ACCESS_KEY` | `nsk_live_…` |
+
+The driver is written against the S3 API, not one vendor's SDK, so Cloudflare
+R2, AWS S3 or MinIO are the same five variables. It uses path-style addressing
+(Neon requires it, everyone else accepts it) and only sends checksums when the
+operation requires one, because several S3-compatible stores reject the CRC32
+that recent AWS SDKs attach by default.
+
+Setting `STORAGE_BUCKET` without the rest fails at boot rather than at the first
+generation that needs it — by then the user has already paid credits.
+
+To verify the driver against a local S3 server:
+
+```bash
+docker run -d -p 9100:9000 -e MINIO_ROOT_USER=testkey \
+  -e MINIO_ROOT_PASSWORD=testsecret123 quay.io/minio/minio server /data
+cd backend && TEST_S3_ENDPOINT=http://localhost:9100 go test ./internal/storage/ -v
+```
 
 ### 3. Vercel
 
@@ -135,10 +191,7 @@ production → Run workflow → pick the tag.
 
 ## Known limitations
 
-**Generated media on Render is ephemeral.** Providers that return raw bytes
-(OpenAI images, Gemini, ElevenLabs) get re-hosted to local disk, which is wiped
-on every deploy and restart. Attach a Render disk mounted at `/app/.media`, or
-swap `storage.Storage` for S3/R2 — the interface is one method wide.
+**Configure object storage or generated media is lost.** See below.
 
 **The free Render tier sleeps.** The first request after idle takes ~30s, which
 the landing page survives (it falls back to a static catalogue) but the studio

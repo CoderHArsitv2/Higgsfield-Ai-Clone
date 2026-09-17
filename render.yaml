@@ -27,6 +27,18 @@ services:
         sync: false
       - key: PUBLIC_BASE_URL
         sync: false
+      # Object storage. Without these, generated files land on the container
+      # filesystem and are lost on every deploy.
+      - key: STORAGE_BUCKET
+        sync: false
+      - key: AWS_ENDPOINT_URL_S3
+        sync: false
+      - key: AWS_REGION
+        sync: false
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
       # Provider credentials. Each one unlocks its models for every user.
       - key: FAL_KEY
         sync: false
