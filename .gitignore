@@ -11,3 +11,8 @@ build/
 .env.local
 __pycache__/
 *.pyc
+
+# backend
+backend/.media/
+backend/bin/
+backend/.env
