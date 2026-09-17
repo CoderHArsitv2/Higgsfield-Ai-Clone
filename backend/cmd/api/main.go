@@ -80,6 +80,7 @@ func run(log *slog.Logger) error {
 
 	keys := services.NewKeys(db, cipher, registry)
 	gens := services.NewGenerations(db, registry, keys)
+	users := services.NewUsers(db)
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
@@ -94,9 +95,11 @@ func run(log *slog.Logger) error {
 		Config:    cfg,
 		DB:        db,
 		Validator: jwtx.NewValidator(cfg.Auth0Domain, cfg.Auth0Audience),
-		Deps:      controllers.Deps{Registry: registry, Generations: gens, Keys: keys},
-		MediaDir:  mediaDir,
-		Log:       log,
+		Deps: controllers.Deps{
+			Registry: registry, Generations: gens, Keys: keys, Users: users,
+		},
+		MediaDir: mediaDir,
+		Log:      log,
 	})
 
 	srv := &http.Server{

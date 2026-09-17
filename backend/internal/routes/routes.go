@@ -49,7 +49,7 @@ func Register(r *gin.Engine, o Options) {
 		v1.GET("/catalog", models.Public)
 
 		auth := v1.Group("")
-		auth.Use(middleware.Auth(o.Validator, o.DB))
+		auth.Use(middleware.Auth(o.Validator, o.Deps.Users))
 		{
 			auth.GET("/me", me.Get)
 			auth.GET("/models", models.List)

@@ -11,4 +11,5 @@ type Deps struct {
 	Registry    *provider.Registry
 	Generations *services.Generations
 	Keys        *services.Keys
+	Users       *services.Users
 }

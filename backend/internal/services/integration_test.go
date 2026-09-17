@@ -15,6 +15,7 @@ import (
 	"github.com/coderHArsitv2/higgsfield-clone/backend/internal/models"
 	"github.com/coderHArsitv2/higgsfield-clone/backend/internal/provider"
 	"github.com/coderHArsitv2/higgsfield-clone/backend/pkg/cryptox"
+	"github.com/coderHArsitv2/higgsfield-clone/backend/pkg/jwtx"
 )
 
 const testEncryptionKey = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
@@ -169,5 +170,95 @@ func TestCreateRejectsEmptyPrompt(t *testing.T) {
 		Prompt:  "   ",
 	}); err == nil {
 		t.Fatal("accepted a blank prompt")
+	}
+}
+
+// Signing in twice must land on the same row.
+//
+// Regression test. The upsert generates a fresh UUID on every call; on a
+// conflict Postgres keeps the existing row's id, so without a RETURNING clause
+// the struct came back holding an id that was never written. Every request
+// after the first login then referenced a user that did not exist: BYOK lookups
+// found nothing, and creating a generation failed on the users foreign key.
+func TestUpsertReturnsThePersistedUser(t *testing.T) {
+	db := testDB(t)
+	users := NewUsers(db)
+	ctx := context.Background()
+
+	claims := jwtx.Claims{
+		Subject: "auth0|stable-" + time.Now().Format("150405.000000000"),
+		Email:   "first@example.com",
+		Name:    "First Name",
+	}
+
+	first, err := users.Upsert(ctx, claims)
+	if err != nil {
+		t.Fatalf("first upsert: %v", err)
+	}
+	t.Cleanup(func() { db.Unscoped().Delete(&models.User{}, "id = ?", first.ID) })
+
+	claims.Email = "second@example.com"
+	claims.Name = "Second Name"
+	second, err := users.Upsert(ctx, claims)
+	if err != nil {
+		t.Fatalf("second upsert: %v", err)
+	}
+
+	if first.ID != second.ID {
+		t.Fatalf("id changed across sign-ins: %s then %s", first.ID, second.ID)
+	}
+
+	// The returned id must actually exist, which is what the foreign key needs.
+	var count int64
+	db.Model(&models.User{}).Where("id = ?", second.ID).Count(&count)
+	if count != 1 {
+		t.Fatalf("upsert returned an id with no row behind it: %s", second.ID)
+	}
+
+	// And exactly one row, not a duplicate per sign-in.
+	db.Model(&models.User{}).Where("auth0_subject = ?", claims.Subject).Count(&count)
+	if count != 1 {
+		t.Fatalf("expected 1 row for the subject, found %d", count)
+	}
+
+	if second.Email != "second@example.com" || second.Name != "Second Name" {
+		t.Fatalf("profile not refreshed from the token: %+v", second)
+	}
+
+	// The end that actually broke in production: a row referencing this id.
+	gen := models.Generation{
+		UserID: second.ID, ProviderID: "mock", ModelID: "mock/still",
+		Modality: "image", Prompt: "fk check", Status: models.StatusQueued,
+	}
+	if err := db.Create(&gen).Error; err != nil {
+		t.Fatalf("foreign key rejected the returned user id: %v", err)
+	}
+	db.Unscoped().Delete(&gen)
+}
+
+// Credits must survive a re-login, or signing out and in again would be free
+// top-ups.
+func TestUpsertDoesNotResetCredits(t *testing.T) {
+	db := testDB(t)
+	users := NewUsers(db)
+	ctx := context.Background()
+	claims := jwtx.Claims{Subject: "auth0|credits-" + time.Now().Format("150405.000000000")}
+
+	u, err := users.Upsert(ctx, claims)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { db.Unscoped().Delete(&models.User{}, "id = ?", u.ID) })
+
+	if err := db.Model(u).UpdateColumn("credits", 7).Error; err != nil {
+		t.Fatal(err)
+	}
+
+	again, err := users.Upsert(ctx, claims)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if again.Credits != 7 {
+		t.Fatalf("re-login changed the balance: want 7, got %d", again.Credits)
 	}
 }
