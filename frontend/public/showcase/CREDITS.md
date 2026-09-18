@@ -3,14 +3,14 @@
 Placeholder footage from [Pexels](https://www.pexels.com), free for commercial
 use with no attribution required. Credited here anyway.
 
-| File | Source |
-| --- | --- |
-| `rain-city.mp4` | pexels.com/video/30169690 |
+| File              | Source                    |
+| ----------------- | ------------------------- |
+| `rain-city.mp4`   | pexels.com/video/30169690 |
 | `neon-street.mp4` | pexels.com/video/29834228 |
-| `coastline.mp4` | pexels.com/video/7913483 |
-| `desert.mp4` | pexels.com/video/19376556 |
-| `portrait.mp4` | pexels.com/video/19863106 |
-| `studio.mp4` | pexels.com/video/3129671 |
+| `coastline.mp4`   | pexels.com/video/7913483  |
+| `desert.mp4`      | pexels.com/video/19376556 |
+| `portrait.mp4`    | pexels.com/video/19863106 |
+| `studio.mp4`      | pexels.com/video/3129671  |
 
 Each clip is a 5-second silent loop, transcoded to ~200-450KB:
 
