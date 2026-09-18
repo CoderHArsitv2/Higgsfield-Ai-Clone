@@ -17,6 +17,10 @@ backend/.media/
 backend/bin/
 backend/.env
 
+# vercel -- `vercel pull` writes this at the repo root, next to the
+# project's Root Directory rather than inside it.
+.vercel/
+
 # frontend
 frontend/node_modules/
 frontend/.next/
