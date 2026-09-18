@@ -60,6 +60,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Agent logs intact
+        run: ./scripts/verify-agent-logs.sh
+
       - uses: actions/setup-go@v5
         with:
           go-version-file: backend/go.mod
