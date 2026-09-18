@@ -243,7 +243,18 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
 
       - name: Pull production config
-        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+        # The CLI reports a valid-but-wrong org/project id the same way it
+        # reports a corrupt link: "Could not retrieve Project Settings", with
+        # advice to delete a .vercel directory that does not exist in CI. The
+        # prefix check above cannot catch this, so translate the exit here.
+        run: |
+          set -euo pipefail
+          if ! vercel pull --yes --environment=production --token="$VERCEL_TOKEN"; then
+            echo "::error::vercel pull failed. If the message was 'Could not retrieve Project Settings', VERCEL_ORG_ID or VERCEL_PROJECT_ID does not match a project this token can see -- the ids are well-formed but wrong, or the token belongs to another account. Check them against orgId/projectId in frontend/.vercel/project.json on a machine where 'vercel link' succeeded."
+            exit 1
+          fi
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
 
       - name: Build
         run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}

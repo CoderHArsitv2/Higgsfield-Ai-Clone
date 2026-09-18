@@ -25,7 +25,40 @@ import { Auth0Client } from "@auth0/nextjs-auth0/server";
  * a callback-url-mismatch error naming both the attempted and allowed values.
  */
 const callbackPath = process.env.AUTH0_CALLBACK_PATH || "/auth/callback";
-const redirectUri = process.env.AUTH0_REDIRECT_URI?.trim() || undefined;
+
+// AUTH0_REDIRECT_URI must be an absolute URL. The SDK runs `new URL()` over it
+// on every interactive login that carries a returnTo, so a value missing its
+// scheme -- `example.com/auth/callback` rather than `https://...` -- surfaces
+// only as `TypeError: Invalid URL` from inside the middleware, which reads as
+// a platform fault rather than a typo in one environment variable.
+//
+// Dropping the bad value rather than throwing is deliberate: middleware runs on
+// every route, so throwing here would take the whole site down instead of one
+// login. Ignoring it lets the SDK fall back to the request origin, so login
+// still completes -- and if the fallback is not registered with Auth0, the
+// error names the callback URL, which is diagnosable.
+function absoluteUrlOrWarn(
+  value: string | undefined,
+  varName: string,
+): string | undefined {
+  if (!value) return undefined;
+  try {
+    new URL(value);
+    return value;
+  } catch {
+    console.error(
+      `[auth0] ${varName} is not an absolute URL: ${JSON.stringify(value)}. ` +
+        `It needs a scheme, e.g. https://your-app.example.com${callbackPath}. ` +
+        `Ignoring it and falling back to the request origin.`,
+    );
+    return undefined;
+  }
+}
+
+const redirectUri = absoluteUrlOrWarn(
+  process.env.AUTH0_REDIRECT_URI?.trim() || undefined,
+  "AUTH0_REDIRECT_URI",
+);
 
 // The SDK documents APP_BASE_URL as accepting a comma-separated list, but its
 // constructor runs `new URL()` over the raw string and throws "Invalid URL" on
@@ -33,7 +66,8 @@ const redirectUri = process.env.AUTH0_REDIRECT_URI?.trim() || undefined;
 const origins = (process.env.APP_BASE_URL || "")
   .split(",")
   .map((o) => o.trim().replace(/\/$/, ""))
-  .filter(Boolean);
+  .filter(Boolean)
+  .filter((o) => absoluteUrlOrWarn(o, "APP_BASE_URL") !== undefined);
 const appBaseUrl =
   origins.length > 1 ? origins : origins.length === 1 ? origins[0] : undefined;
 
