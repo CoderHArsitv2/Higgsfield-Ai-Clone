@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { ProviderIcon } from "./ProviderIcon";
 import { LazyVideo } from "@/components/ui/LazyVideo";
 import type { Connection } from "@/lib/connections";
@@ -10,6 +9,15 @@ import type { Connection } from "@/lib/connections";
  * screen needs no client JavaScript: the SDK forwards the connection to Auth0's
  * /authorize, which sends the user straight to that provider rather than to an
  * Auth0-hosted chooser.
+ *
+ * These are `<a>`, not `next/link`. /auth/login is served by middleware, not by
+ * a route in this app, so there is nothing for a client-side navigation to do.
+ * More importantly, `next/link` prefetches: every button visible on this screen
+ * would silently start a login, and each one banks an encrypted `__txn_<state>`
+ * cookie that is never completed. The SDK caps those cookies and evicts the
+ * oldest, so the transaction from the button the user actually clicked can be
+ * thrown away before Auth0 redirects back -- surfacing as "The state parameter
+ * is invalid." on /auth/callback.
  */
 export function AuthPanel({
   connections,
@@ -80,14 +88,14 @@ export function AuthPanel({
 
         <div className="space-y-2.5">
           {connections.map((c) => (
-            <Link
+            <a
               key={c.id}
               href={href(c.id)}
               className="flex h-12 items-center justify-center gap-3 rounded-xl border border-line bg-void/40 text-sm font-medium transition-colors hover:border-dim hover:bg-void"
             >
               <ProviderIcon name={c.icon} />
               Continue with {c.label}
-            </Link>
+            </a>
           ))}
         </div>
 
@@ -99,7 +107,7 @@ export function AuthPanel({
           <span className="h-px flex-1 bg-line" />
         </div>
 
-        <Link
+        <a
           href={href(emailConnection || undefined)}
           className="flex h-12 items-center justify-center gap-3 rounded-xl border border-line bg-void/40 text-sm font-medium transition-colors hover:border-dim hover:bg-void"
         >
@@ -116,7 +124,7 @@ export function AuthPanel({
             <path d="m2.5 5 6.5 4.5L15.5 5" />
           </svg>
           Continue with Email
-        </Link>
+        </a>
 
         <p className="mt-8 text-center text-xs leading-relaxed text-dim">
           Authentication is handled by Auth0. We never see or store a password.
