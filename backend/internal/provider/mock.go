@@ -31,17 +31,19 @@ func (m *Mock) Models() []ModelSpec {
 		Options: opts("cinematic", "Cinematic", "editorial", "Editorial", "anime", "Anime", "product", "Product"),
 	}
 	return []ModelSpec{
+		// IDs stay mock/still and mock/still-xl: existing generation rows
+		// reference them, and renaming would orphan a user's history.
 		{
-			ID: "mock/still", Name: "Sandbox Still", Modality: ModalityImage, CreditCost: 1, Featured: true,
-			Description: "Photoreal stills. Runs without any API key so you can try the studio immediately.",
-			Tags:        []string{"image", "no key needed"},
-			Params:      []ParamSpec{aspectParam("1:1"), styleParam, negativePromptParam, seedParam},
+			ID: "mock/still", Name: "Sandbox Clip", Modality: ModalityVideo, CreditCost: 1, Featured: true,
+			Description: "Short clips. Runs without any API key so you can try the studio immediately.",
+			Tags:        []string{"video", "no key needed"},
+			Params:      []ParamSpec{aspectParam("1:1"), durationParam(5), styleParam, negativePromptParam, seedParam},
 			RefImages:   3,
 		},
 		{
-			ID: "mock/still-xl", Name: "Sandbox Still XL", Modality: ModalityImage, CreditCost: 2,
-			Description: "Higher resolution stills with more detail retention.",
-			Tags:        []string{"image", "no key needed"},
+			ID: "mock/still-xl", Name: "Sandbox Clip XL", Modality: ModalityVideo, CreditCost: 2,
+			Description: "Higher resolution clips with more detail retention.",
+			Tags:        []string{"video", "no key needed"},
 			Params:      []ParamSpec{aspectParam("16:9"), resolutionParam("1080p", "1080p", "1080p", "2k", "2K"), styleParam, seedParam},
 			RefImages:   3,
 		},
@@ -110,47 +112,35 @@ func (m *Mock) Poll(_ context.Context, req PollRequest) (PollResult, error) {
 }
 
 func (m *Mock) assets(model ModelSpec, seed string) []ResultAsset {
-	w, h := 1024, 1024
-	switch model.Modality {
-	case ModalityVideo:
-		w, h = 1280, 720
-	case ModalityImage:
-		w, h = 1024, 768
+	if model.Modality == ModalityAudio {
+		return []ResultAsset{{Kind: "audio", URL: sampleAudio, DurationMS: 6000}}
 	}
 
-	switch model.Modality {
-	case ModalityVideo:
-		clip := sampleClips[int(hashInt(seed))%len(sampleClips)]
-		return []ResultAsset{{
-			Kind: "video", URL: clip, Width: w, Height: h, DurationMS: 10000,
-			ThumbnailURL: placeholder(seed, w, h),
-		}}
-	case ModalityAudio:
-		return []ResultAsset{{Kind: "audio", URL: sampleAudio, DurationMS: 6000}}
-	default:
-		out := make([]ResultAsset, 0, 2)
-		for i := 0; i < 2; i++ {
-			s := fmt.Sprintf("%s-%d", seed, i)
-			out = append(out, ResultAsset{Kind: "image", URL: placeholder(s, w, h), ThumbnailURL: placeholder(s, 512, 512), Width: w, Height: h})
-		}
-		return out
-	}
+	// Every other sandbox model returns video. The sandbox exists to show what
+	// the product does, and this is a video product -- a still undersells it.
+	clip := sampleClips[int(hashInt(seed))%len(sampleClips)]
+	return []ResultAsset{{
+		Kind: "video", URL: clip.video, ThumbnailURL: clip.poster,
+		Width: 1280, Height: 720, DurationMS: 5000,
+	}}
 }
 
-// Public placeholder media. Swapped out entirely once a real provider key is
-// present -- nothing else in the app knows these exist.
-var sampleClips = []string{
-	"https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4",
-	"https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
-	"https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
-	"https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4",
+// Placeholder media, served by the frontend from its own public/showcase
+// directory. Paths are site-relative on purpose: the browser resolves them
+// against the app's own origin, so the sandbox has no external dependency that
+// can rate-limit, go offline, or get blocked on a corporate network. Swapped
+// out entirely once a real provider key is present -- nothing else in the app
+// knows these exist.
+var sampleClips = []struct{ video, poster string }{
+	{"/showcase/rain-city.mp4", "/showcase/rain-city.jpg"},
+	{"/showcase/neon-street.mp4", "/showcase/neon-street.jpg"},
+	{"/showcase/coastline.mp4", "/showcase/coastline.jpg"},
+	{"/showcase/desert.mp4", "/showcase/desert.jpg"},
+	{"/showcase/portrait.mp4", "/showcase/portrait.jpg"},
+	{"/showcase/studio.mp4", "/showcase/studio.jpg"},
 }
 
 const sampleAudio = "https://storage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4"
-
-func placeholder(seed string, w, h int) string {
-	return fmt.Sprintf("https://picsum.photos/seed/%s/%d/%d", seed, w, h)
-}
 
 func progressFor(remaining time.Duration, mod Modality) int {
 	total := 6 * time.Second

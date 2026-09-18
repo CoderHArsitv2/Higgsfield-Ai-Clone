@@ -45,10 +45,10 @@ const m = (
 /** Mirrors the server catalogue. Kept in sync by hand; only used when offline. */
 const FALLBACK: PublicModel[] = [
   m(
-    "Sandbox Still",
+    "Sandbox Clip",
     "Sandbox",
-    "image",
-    "Photoreal stills. Runs without any API key.",
+    "video",
+    "Short clips. Runs without any API key.",
     true,
     true,
   ),

@@ -1,4 +1,54 @@
-import Link from "next/link";
+"use client";
+
+import Link, { useLinkStatus } from "next/link";
+import { usePathname } from "next/navigation";
+
+const TABS = [
+  { href: "/studio", label: "Studio" },
+  { href: "/generations", label: "Generations" },
+  { href: "/settings/keys", label: "Keys" },
+];
+
+/**
+ * Nav tabs report their own pending state.
+ *
+ * Moving between tabs renders on the server, so there is a real wait before
+ * anything changes. Without a signal the app looks like it ignored the click
+ * and people click again. `useLinkStatus` is scoped to the enclosing Link, so
+ * the spinner appears on the tab actually being navigated to.
+ */
+function TabPending() {
+  const { pending } = useLinkStatus();
+  if (!pending) return null;
+  return (
+    <span
+      role="status"
+      aria-label="Loading"
+      className="ml-1.5 inline-block h-3 w-3 animate-spin rounded-full border border-current border-t-transparent align-[-1px] opacity-70"
+    />
+  );
+}
+
+function Tab({ href, label }: { href: string; label: string }) {
+  const pathname = usePathname();
+  const active = pathname === href || pathname.startsWith(`${href}/`);
+
+  return (
+    <Link
+      href={href}
+      aria-current={active ? "page" : undefined}
+      className={`relative inline-flex items-center py-4 transition-colors ${
+        active ? "text-fg" : "text-muted hover:text-fg"
+      }`}
+    >
+      {label}
+      <TabPending />
+      {active && (
+        <span className="absolute inset-x-0 bottom-0 h-px bg-accent" />
+      )}
+    </Link>
+  );
+}
 
 export function AppNav({
   credits,
@@ -31,16 +81,10 @@ export function AppNav({
             />
             <span className="font-medium">Aperture</span>
           </Link>
-          <nav className="flex items-center gap-5 text-sm text-muted">
-            <Link href="/studio" className="transition-colors hover:text-fg">
-              Studio
-            </Link>
-            <Link
-              href="/settings/keys"
-              className="transition-colors hover:text-fg"
-            >
-              Keys
-            </Link>
+          <nav className="flex items-center gap-5 text-sm">
+            {TABS.map((t) => (
+              <Tab key={t.href} {...t} />
+            ))}
           </nav>
         </div>
 

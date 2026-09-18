@@ -57,7 +57,18 @@ export function KeyManager() {
   };
 
   if (loading) {
-    return <p className="font-mono text-xs text-dim">Loading providers…</p>;
+    // Same geometry as the real rows, so the list does not jump on arrival.
+    return (
+      <div
+        className="space-y-3"
+        aria-busy="true"
+        aria-label="Loading providers"
+      >
+        {[0, 1, 2, 3].map((i) => (
+          <div key={i} className="skeleton h-20 rounded-xl" />
+        ))}
+      </div>
+    );
   }
 
   return (
