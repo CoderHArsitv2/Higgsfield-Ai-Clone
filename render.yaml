@@ -4,7 +4,9 @@ services:
     name: aperture-api
     runtime: docker
     dockerfilePath: ./backend/Dockerfile
-    dockerContext: ./backend
+    # Repository root, so the build needs no context override configured by
+    # hand. The Dockerfile's COPY paths are repo-relative to match.
+    dockerContext: .
     region: oregon
     plan: starter
     healthCheckPath: /health

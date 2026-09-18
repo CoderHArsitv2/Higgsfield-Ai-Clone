@@ -62,9 +62,10 @@ jobs:
       - run: go build ./...
 
       - name: Build the image Render will build
-        # Render builds from this Dockerfile. Without this step a broken
-        # Dockerfile is only discovered during a production deploy.
-        run: docker build -f Dockerfile -t aperture-api:ci .
+        # From the repository root, with the same context Render uses -- the
+        # point is to catch a context mismatch here rather than mid-deploy.
+        working-directory: .
+        run: docker build -f backend/Dockerfile -t aperture-api:ci .
 
   frontend:
     name: Frontend

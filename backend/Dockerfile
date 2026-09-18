@@ -1,14 +1,22 @@
-# Render builds from this. Multi-stage so the shipped image has no toolchain.
+# Render builds this. Multi-stage so the shipped image has no toolchain.
+#
+# The build context is the REPOSITORY ROOT, not backend/, because that is what
+# Render uses by default and a context that has to be configured by hand is a
+# context someone will forget -- the symptom is a cryptic
+# `"/go.sum": not found` during COPY. Paths below are therefore repo-relative,
+# and the root .dockerignore keeps the frontend out of the upload.
+#
+#   docker build -f backend/Dockerfile .
 FROM golang:1.25-alpine AS build
 
 WORKDIR /src
 RUN apk add --no-cache ca-certificates
 
-# Copy manifests first so dependency layers cache across code-only changes.
-COPY go.mod go.sum ./
+# Manifests first so the dependency layer caches across code-only changes.
+COPY backend/go.mod backend/go.sum ./
 RUN go mod download
 
-COPY . .
+COPY backend/ ./
 RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/api ./cmd/api
 
 FROM alpine:3.20
@@ -18,8 +26,8 @@ WORKDIR /app
 
 COPY --from=build /out/api /app/api
 
-# Generated media is written here. On Render this is ephemeral unless a disk is
-# attached; mount one at /app/.media if you need results to survive a restart.
+# Generated media is written here when no object store is configured. On Render
+# that is ephemeral, so attach a disk at /app/.media or set STORAGE_BUCKET.
 RUN mkdir -p /app/.media && chown -R app:app /app
 USER app
 

@@ -1,0 +1,19 @@
+# The backend image builds with the repository root as its context, so
+# everything the Go build does not need is excluded here. Without this the
+# frontend's node_modules and the showcase videos would be uploaded on every
+# build.
+
+.git
+.github
+.agent-logs
+frontend
+docker-compose.yml
+render.yaml
+*.md
+
+backend/.env
+backend/.media
+backend/bin
+**/__pycache__
+**/*.pyc
+.DS_Store

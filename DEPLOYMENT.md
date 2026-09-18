@@ -49,8 +49,9 @@ build, so even an untagged deploy is traceable to a commit.
 ### 2. Render — web service
 
 1. **New → Web Service**, connect the repo.
-2. **Runtime: Docker**. **Dockerfile path** `backend/Dockerfile`,
-   **Docker build context** `backend`.
+2. **Runtime: Docker**. **Dockerfile path** `backend/Dockerfile`. Leave
+   **Docker build context** at the default (the repository root) — the
+   Dockerfile's paths are repo-relative precisely so this needs no override.
 3. **Health check path**: `/health`.
 4. **Auto-Deploy: off.** GitHub Actions owns deploys so they are gated on tests;
    leaving it on means an untested push deploys itself.
@@ -200,3 +201,38 @@ will feel broken. Use a paid instance for anything demoed live.
 **AutoMigrate only ever adds.** It will not drop a column, narrow a type, or
 remove an index you deleted. Renaming a struct field leaves the old column
 behind holding data.
+
+---
+
+## Troubleshooting
+
+### `failed to compute cache key: "/go.sum": not found`
+
+The Docker build context is not what the Dockerfile expects. Its `COPY` paths
+are repo-relative (`COPY backend/go.mod …`), so the context must be the
+repository root — Render's default. If **Docker Build Context Directory** is set
+to `backend`, clear it.
+
+Reproduce either way locally:
+
+```bash
+docker build -f backend/Dockerfile .          # correct
+docker build -f backend/Dockerfile backend    # the error above
+```
+
+### Generations fail with `no API key available for this provider`
+
+Something else is polling the same database — most often a local backend left
+running against the production `DATABASE_URL`. Every process pointed at a
+database picks up jobs from its queue, and one without the provider key cannot
+run them. Since a missing key is a property of the instance rather than the job,
+the worker requeues instead of failing, but it gives up after three attempts if
+no instance can run it.
+
+Check for strays: `lsof -iTCP -sTCP:LISTEN -P -n | grep -E "api|main"`.
+
+### The first request after idle takes ~30 seconds
+
+A free Render instance sleeping. The landing page survives it — it falls back to
+a static catalogue — but the studio will look broken. Use a paid instance for
+anything demonstrated live.
